@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dweb — 展區 D：影片輪播 / Trigger 通道</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  ============================================================
+  Dweb — 網站架構
+  ------------------------------------------------------------
+  1. .stagewrap        全螢幕影片輪播（三段 <video> 交叉淡入）
+  2. .info             左側 infographic 疊層（無背景，只有資訊）
+                       - 警示膠囊 alert pill
+                       - DATA 01 長條圖（SVG，門檻線 50）
+  3. #panel            隱藏側邊介面（按 F 開 / 再按 F 收）
+                       3a. 三段影片來源（拖放上傳 / 路徑輸入）
+                       3b. Trigger 通道 T1 / T2 / T3（銜接處）
+                       3c. 連線設定：WebSocket 主用 + 本機 HTTP 備援
+                       3d. 事件日誌
+  ------------------------------------------------------------
+  對外介面：
+    window.Dweb.next() / goto(n) / play() / pause()
+    window.Dweb.send(payload)          手動送出 trigger
+    window.Dweb.onTrigger = fn         接收外部 trigger
+    postMessage({cmd:'next'}) 亦可觸發
+  Trigger 封包（送出）：
+    {src:'Dweb', junction:'D_T1', type:'stage_end', from:1, to:2, ts:...}
+  Trigger 封包（接收）：
+    {cmd:'next'} | {cmd:'goto', stage:2} | {cmd:'play'} | {cmd:'pause'}
+    {cmd:'scene', n:2}                      強制切分鏡（顏色/文案）
+    {cmd:'data', co2:700, hcho:0.05, tvoc:2.5, pm1:100, pm25:200, pm10:150}
+    {cmd:'data', values:[co2,hcho,tvoc,pm1,pm25,pm10], alert:'文字', sub:'文字'}
+  ------------------------------------------------------------
+  分鏡對應（依展區 D 分鏡腳本）：
+    STAGE 01 / SCENE 01  偵測數據啟動        青綠  正常值
+    STAGE 02 / SCENE 02  負壓防護            橘紅  油煙 → 數值飆升 → 抽油煙機排出
+    STAGE 03 / SCENE 03  正壓守護 · 深層淨化  青藍  微正壓 → 曲線下降 → 淨化報告
+  ============================================================
+-->
+<style>
+:root{
+  --bg-0:#000206;
+  --ink:#eaf1ff;
+  --ink-dim:#8ba0c6;
+  --ink-faint:#4d5d80;
+  --cyan:#2fd8ff;
+  --green:#3df08a;
+  --violet:#8b5cff;
+  --amber:#ffb03a;
+  --red:#ff4d6a;
+  --r:18px;
+  --panel-w:400px;
+  --font:"Inter","Helvetica Neue",-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Roboto Mono",monospace;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;background:var(--bg-0);color:var(--ink);
+  font-family:var(--font);overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ================= 1. 影片輪播 ================= */
+.stagewrap{position:fixed;inset:0;background:#000;}
+.stagewrap video{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;opacity:0;transition:opacity .45s ease;
+  background:#000;
+}
+.stagewrap video.on{opacity:1;}
+.novideo{
+  position:absolute;inset:0;display:grid;place-content:center;
+  gap:10px;text-align:center;color:var(--ink-faint);
+  font-size:13px;letter-spacing:.14em;
+  background:radial-gradient(70% 60% at 50% 45%, rgba(20,40,90,.35), #000 72%);
+}
+.novideo b{display:block;color:var(--ink-dim);font-size:16px;letter-spacing:.4em;}
+.novideo.hide{display:none;}
+
+/* ================= 2. infographic 疊層 ================= */
+.info{
+  position:fixed;left:clamp(18px,3.2vw,54px);top:50%;
+  transform:translateY(-50%);
+  width:clamp(240px,21.5vw,340px);
+  pointer-events:none;z-index:5;
+  text-shadow:0 2px 14px rgba(0,0,0,.75);
+  --glass:.42;          /* 玻璃底層濃度 0~1 */
+  --glass-blur:7px;     /* 底層模糊 */
+}
+/* 深色玻璃底層：壓在資訊下方，影片仍可透出 */
+.info::before{
+  content:"";position:absolute;z-index:-1;
+  left:calc(-1 * clamp(18px,3.2vw,54px) - 40px);   /* 往左延伸到畫面邊緣外 */
+  right:-14%;
+  top:-9%;bottom:-9%;
+  background:
+    linear-gradient(100deg,
+      rgba(2,7,18,var(--glass)) 0%,
+      rgba(3,9,22,calc(var(--glass) * .78)) 46%,
+      rgba(4,10,24,calc(var(--glass) * .34)) 74%,
+      rgba(4,10,24,0) 100%),
+    radial-gradient(120% 78% at 8% 50%, rgba(10,26,58,.30) 0%, transparent 70%);
+  backdrop-filter:blur(var(--glass-blur)) saturate(112%) brightness(.86);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(112%) brightness(.86);
+  /* 四周柔化，避免出現硬邊 */
+  -webkit-mask-image:
+    linear-gradient(to right, #000 0%, #000 52%, rgba(0,0,0,.55) 78%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  -webkit-mask-composite:source-in;
+  mask-image:
+    linear-gradient(to right, #000 0%, #000 52%, rgba(0,0,0,.55) 78%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  mask-composite:intersect;
+  pointer-events:none;
+}
+/* --- 分鏡配色（.info 上的 s1 / s2 / s3） --- */
+@property --a1{syntax:'<color>';inherits:true;initial-value:#2fd8ff;}
+@property --a2{syntax:'<color>';inherits:true;initial-value:#4dfb8f;}
+@property --acc{syntax:'<color>';inherits:true;initial-value:#3df08a;}
+.info{--a1:#2fd8ff;--a2:#4dfb8f;--acc:#3df08a;
+      transition:--a1 .9s ease, --a2 .9s ease, --acc .9s ease;}
+.info.s1{--a1:#2fd8ff;--a2:#4dfb8f;--acc:#3df08a;}  /* 分鏡一 · 偵測數據：青綠 */
+.info.s2{--a1:#ffc24a;--a2:#ff4d6a;--acc:#ff7a4a;}  /* 分鏡二 · 負壓防護：橘紅 */
+.info.s3{--a1:#3ce0d0;--a2:#4aa8ff;--acc:#45e0c8;}  /* 分鏡三 · 正壓守護／深層淨化：青藍 */
+
+/* --- 標頭：AQI 環 + 分鏡名 --- */
+.ihead{display:flex;align-items:center;gap:12px;margin-bottom:11px;}
+.ring{width:clamp(62px,5.2vw,78px);aspect-ratio:1;position:relative;flex:0 0 auto;}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible;}
+.ring .rv{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:1;}
+.ring .rv b{font-size:clamp(17px,1.6vw,22px);font-weight:600;font-variant-numeric:tabular-nums;}
+.ring .rv i{display:block;font-style:normal;margin-top:4px;font-size:8px;
+            letter-spacing:.14em;color:var(--acc);white-space:nowrap;}
+.hmeta{min-width:0;}
+.hmeta .eyebrow{font-size:8px;letter-spacing:.2em;color:var(--ink-faint);white-space:nowrap;}
+.hmeta .scene{margin-top:5px;font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--acc);}
+.hmeta .sname{margin-top:3px;font-size:clamp(12.5px,1.15vw,16px);font-weight:600;letter-spacing:.09em;}
+
+/* --- 警示膠囊：漸層描邊、無實心背景 --- */
+.alert{
+  position:relative;border-radius:14px;
+  padding:11px 13px;margin-bottom:12px;
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  background:rgba(4,8,18,.20);
+  transition:opacity .4s ease, transform .4s ease;
+}
+.alert::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;
+  background:linear-gradient(118deg,var(--a1) 0%,var(--acc) 52%,var(--a2) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:.92;pointer-events:none;
+}
+.alert.flash{animation:flash .5s ease;}
+@keyframes flash{0%{transform:scale(1)}35%{transform:scale(1.03)}100%{transform:scale(1)}}
+.alert .l1{
+  font-size:clamp(12.5px,1.1vw,16px);font-weight:600;
+  letter-spacing:.14em;text-align:center;line-height:1.35;
+}
+.alert .l2{
+  margin-top:5px;font-size:clamp(11px,.95vw,13.5px);font-weight:500;
+  letter-spacing:.08em;text-align:center;color:#dbe7ff;opacity:.9;
+}
+
+/* --- 六項數值 --- */
+.metrics{display:grid;gap:7px;}
+.m{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:baseline;}
+.m .mk{font-size:9.5px;letter-spacing:.16em;color:var(--ink-dim);}
+.m .mv{
+  font-size:clamp(11.5px,1.05vw,14px);font-weight:600;text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.m .mv i{font-style:normal;font-size:8px;font-weight:400;color:var(--ink-faint);margin-left:3px;letter-spacing:.04em;}
+.m .mbar{
+  grid-column:1;position:relative;height:5px;border-radius:3px;
+  background:
+    repeating-linear-gradient(-38deg, rgba(150,200,255,.22) 0 1px, transparent 1px 6px),
+    rgba(255,255,255,.05);
+}
+.m .fill{
+  position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;
+  background:linear-gradient(90deg,var(--a1),var(--a2));
+  filter:drop-shadow(0 0 4px var(--a2));
+  transition:width .55s cubic-bezier(.4,0,.2,1);
+}
+.m .tick{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:#dbe7ff;opacity:.45;}
+.m .ms{grid-column:2;font-size:8.5px;letter-spacing:.1em;text-align:right;white-space:nowrap;}
+.sev0{color:#7fe8b0;} .sev1{color:#ffd36a;} .sev2{color:#ff9a4a;} .sev3{color:#ff5f6d;}
+.m.lv3 .mv{color:#ff8a94;} .m.lv2 .mv{color:#ffb07a;}
+
+/* --- AQI 趨勢 --- */
+.spark{margin-top:11px;}
+.spark .sl{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:8px;letter-spacing:.18em;color:var(--ink-faint);margin-bottom:3px;
+}
+.spark .sl b{font-family:var(--mono);font-size:9px;color:var(--acc);font-weight:500;}
+.spark svg{width:100%;height:34px;display:block;}
+
+/* --- 頁尾標題 --- */
+.title{display:flex;align-items:center;gap:8px;margin-top:9px;}
+.title span{
+  font-size:clamp(13px,1.25vw,18px);font-weight:400;letter-spacing:.08em;
+  color:var(--a1);opacity:.92;white-space:nowrap;
+}
+.title .rules{flex:1;display:grid;gap:3px;}
+.title .rules i{display:block;height:1px;background:var(--a1);opacity:.55;}
+.title .rules i:nth-child(2){width:78%;}
+.title .rules i:nth-child(3){width:52%;}
+
+/* ================= 3. 隱藏側邊介面 ================= */
+#panel{
+  position:fixed;top:0;right:0;height:100%;width:var(--panel-w);
+  max-width:92vw;z-index:40;
+  transform:translateX(102%);transition:transform .34s cubic-bezier(.4,0,.2,1);
+  background:linear-gradient(200deg,rgba(10,18,42,.94),rgba(3,6,16,.96));
+  backdrop-filter:blur(22px) saturate(140%);
+  -webkit-backdrop-filter:blur(22px) saturate(140%);
+  border-left:1px solid rgba(120,170,255,.18);
+  box-shadow:-30px 0 80px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;
+}
+#panel.open{transform:translateX(0);}
+.ph{
+  padding:16px 18px 12px;border-bottom:1px solid rgba(120,170,255,.13);
+  display:flex;align-items:baseline;gap:10px;flex:0 0 auto;
+}
+.ph h1{margin:0;font-size:14px;letter-spacing:.22em;font-weight:600;}
+.ph em{font-style:normal;font-size:10px;letter-spacing:.16em;color:var(--ink-faint);margin-left:auto;}
+.pb{flex:1;overflow-y:auto;padding:14px 18px 26px;}
+.pb::-webkit-scrollbar{width:8px;}
+.pb::-webkit-scrollbar-thumb{background:rgba(120,170,255,.2);border-radius:4px;}
+
+.sec{margin-bottom:22px;}
+.sec > h2{
+  margin:0 0 9px;font-size:10px;font-weight:600;letter-spacing:.22em;
+  color:var(--ink-faint);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+.sec > h2::after{content:"";flex:1;height:1px;background:rgba(120,170,255,.14);}
+
+/* --- 上傳槽 --- */
+.slot{
+  border:1px dashed rgba(120,170,255,.3);border-radius:12px;
+  padding:10px 12px;margin-bottom:9px;transition:.2s;
+  background:rgba(255,255,255,.022);
+}
+.slot.drag{border-color:var(--cyan);background:rgba(47,216,255,.09);}
+.slot.live{border-style:solid;border-color:rgba(61,240,138,.42);}
+.slot.cur{box-shadow:0 0 0 1px rgba(61,240,138,.5),0 0 22px rgba(61,240,138,.16);}
+.slot .top{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.slot .tag{font-size:10px;letter-spacing:.18em;font-weight:600;color:var(--cyan);}
+.slot .st{
+  margin-left:auto;font-size:9.5px;letter-spacing:.1em;color:var(--ink-faint);
+  font-family:var(--mono);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:190px;
+}
+.slot .row{display:flex;gap:6px;}
+.slot input[type=text]{flex:1;min-width:0;}
+label.file{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;
+  font-size:10.5px;letter-spacing:.1em;
+  border:1px solid rgba(120,170,255,.28);color:var(--ink-dim);
+  background:rgba(255,255,255,.03);
+}
+label.file:hover{border-color:var(--cyan);color:var(--ink);}
+label.file input{display:none;}
+
+input[type=text],input[type=number],select{
+  background:rgba(0,0,0,.4);border:1px solid rgba(120,170,255,.22);
+  border-radius:8px;color:var(--ink);padding:5px 8px;
+  font-family:var(--mono);font-size:10.5px;outline:none;width:100%;
+}
+input:focus,select:focus{border-color:var(--cyan);}
+input[type=range]{width:100%;accent-color:var(--cyan);background:none;border:0;padding:0;height:16px;}
+button{
+  background:rgba(255,255,255,.045);border:1px solid rgba(120,170,255,.26);
+  color:var(--ink-dim);border-radius:8px;padding:5px 11px;cursor:pointer;
+  font-family:var(--font);font-size:10.5px;letter-spacing:.1em;transition:.16s;
+}
+button:hover{border-color:var(--cyan);color:var(--ink);background:rgba(47,216,255,.1);}
+button.go{border-color:rgba(61,240,138,.45);color:#bff8d8;}
+button.go:hover{background:rgba(61,240,138,.14);}
+
+/* --- trigger 通道鏈 --- */
+.chain{display:grid;gap:0;}
+.node{
+  display:flex;align-items:center;gap:9px;padding:6px 10px;
+  border-radius:9px;background:rgba(255,255,255,.028);
+  font-size:10.5px;letter-spacing:.12em;color:var(--ink-dim);
+}
+.node.act{color:#bff8d8;background:rgba(61,240,138,.1);}
+.node .n{font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);margin-left:auto;}
+.jn{
+  display:flex;align-items:center;gap:8px;
+  margin:4px 0 4px 14px;padding:7px 10px;
+  border-left:2px solid rgba(120,170,255,.25);
+  border-radius:0 9px 9px 0;background:rgba(120,170,255,.05);
+  transition:.18s;
+}
+.jn.hit{border-left-color:var(--green);background:rgba(61,240,138,.13);}
+.jn .id{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:.08em;}
+.jn .io{display:flex;gap:4px;margin-left:auto;align-items:center;}
+.lamp{
+  display:block;width:7px;height:7px;border-radius:50%;
+  background:rgba(120,170,255,.22);
+  box-shadow:0 0 0 1px rgba(120,170,255,.2) inset;transition:.15s;
+}
+.lamp.out.on{background:var(--cyan);box-shadow:0 0 9px var(--cyan);}
+.lamp.in.on{background:var(--green);box-shadow:0 0 9px var(--green);}
+.jn button{padding:3px 7px;font-size:9.5px;}
+.jn input[type=text]{width:92px;flex:0 0 auto;font-size:9.5px;padding:3px 6px;}
+
+/* --- 連線 --- */
+.field{display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center;margin-bottom:7px;}
+.field span{font-size:9.5px;letter-spacing:.14em;color:var(--ink-faint);}
+.conn{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 8px rgba(255,77,106,.6);flex:0 0 auto;}
+.dot.ok{background:var(--green);box-shadow:0 0 10px rgba(61,240,138,.7);}
+.dot.wait{background:var(--amber);box-shadow:0 0 10px rgba(255,176,58,.6);}
+.conn .txt{font-size:9.5px;font-family:var(--mono);color:var(--ink-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chk{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--ink-dim);letter-spacing:.1em;margin-top:7px;cursor:pointer;}
+.chk input{accent-color:var(--cyan);}
+
+/* --- 日誌 --- */
+#log{
+  height:150px;overflow-y:auto;border-radius:10px;
+  background:rgba(0,0,0,.45);border:1px solid rgba(120,170,255,.14);
+  padding:8px 10px;font-family:var(--mono);font-size:9.5px;line-height:1.65;
+}
+#log::-webkit-scrollbar{width:6px;}
+#log::-webkit-scrollbar-thumb{background:rgba(120,170,255,.2);border-radius:3px;}
+#log div{white-space:pre-wrap;word-break:break-all;color:var(--ink-faint);}
+#log .o{color:var(--cyan);}
+#log .i{color:var(--green);}
+#log .e{color:var(--red);}
+
+.hint{font-size:9.5px;color:var(--ink-faint);line-height:1.8;letter-spacing:.05em;}
+kbd{
+  font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:4px;
+  border:1px solid rgba(120,170,255,.3);color:var(--ink-dim);
+}
+.fhint{
+  position:fixed;right:16px;bottom:14px;z-index:6;
+  font-size:9.5px;letter-spacing:.18em;color:rgba(180,205,255,.34);
+  pointer-events:none;transition:opacity .6s;
+}
+.fhint.gone{opacity:0;}
+</style>
+</head>
+<body>
+
+<!-- ============ 1. 影片輪播 ============ -->
+<div class="stagewrap" id="stagewrap">
+  <video id="v0" playsinline muted></video>
+  <video id="v1" playsinline muted></video>
+  <video id="v2" playsinline muted></video>
+  <div class="novideo" id="novideo">
+    <b>D W E B</b>
+    尚未載入影片 · 按 F 開啟側邊介面上傳三段影片
+  </div>
+</div>
+
+<!-- ============ 2. infographic 疊層 ============ -->
+<div class="info s1" id="info">
+
+  <!-- AQI 環 + 分鏡標頭 -->
+  <div class="ihead">
+    <div class="ring">
+      <svg viewBox="0 0 68 68">
+        <circle cx="34" cy="34" r="29" fill="none" stroke="rgba(200,225,255,.12)" stroke-width="4"/>
+        <circle id="aqiArc" cx="34" cy="34" r="29" fill="none" stroke-width="4" stroke-linecap="round"
+                stroke-dasharray="182.2" stroke-dashoffset="182.2"
+                style="stroke:var(--acc);transition:stroke-dashoffset .7s ease"/>
+      </svg>
+      <div class="rv"><b id="aqiV">—</b><i id="aqiC">AQI</i></div>
+    </div>
+    <div class="hmeta">
+      <div class="eyebrow">居家空氣品質 · LIVE MONITORING</div>
+      <div class="scene" id="sceneTag">SCENE 01</div>
+      <div class="sname" id="sceneName">偵測數據啟動</div>
+    </div>
+  </div>
+
+  <!-- 警示膠囊 -->
+  <div class="alert" id="alert">
+    <div class="l1" id="al1">偵測數據啟動</div>
+    <div class="l2" id="al2">AI 即時監測空氣品質</div>
+  </div>
+
+  <!-- 六項指標 -->
+  <div class="metrics" id="metrics"></div>
+
+  <!-- AQI 歷史趨勢曲線 -->
+  <div class="spark">
+    <div class="sl"><span>AQI 趨勢曲線</span><b id="sparkNow">—</b></div>
+    <svg viewBox="0 0 260 40" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   style="stop-color:var(--a1)" stop-opacity=".34"/>
+          <stop offset="100%" style="stop-color:var(--a1)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <polygon  id="sparkFill" fill="url(#sparkGrad)" points=""/>
+      <polyline id="sparkLine" fill="none" stroke-width="1.6" stroke-linejoin="round"
+                stroke-linecap="round" style="stroke:var(--a1)" points=""/>
+    </svg>
+  </div>
+
+  <div class="title">
+    <span id="dataTitle">AIR DATA · D</span>
+    <div class="rules"><i></i><i></i><i></i></div>
+  </div>
+</div>
+
+<div class="fhint" id="fhint">PRESS <b>F</b></div>
+
+<!-- ============ 3. 隱藏側邊介面 ============ -->
+<aside id="panel" aria-hidden="true">
+  <div class="ph">
+    <h1>D · CONTROL</h1>
+    <em>F 收合</em>
+  </div>
+  <div class="pb">
+
+    <section class="sec">
+      <h2>影片來源 · 三階段</h2>
+      <div id="slots"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button class="go" id="btnPlay">▶ 播放</button>
+        <button id="btnPrev">◀ 上一段</button>
+        <button id="btnNext">下一段 ▶</button>
+        <button id="btnMute">🔇</button>
+      </div>
+      <div class="field" style="margin-top:9px;">
+        <span>模式</span>
+        <select id="mode">
+          <option value="auto">循環輪播 1→2→3→1（自動）</option>
+          <option value="wait">播完停住 · 等外部 trigger</option>
+          <option value="hold">單段循環 · 手動換段</option>
+        </select>
+      </div>
+      <div class="field">
+        <span>淡接 ms</span>
+        <input type="number" id="fade" value="450" min="0" max="3000" step="50">
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>Trigger 通道 · 銜接處</h2>
+      <div class="chain" id="chain"></div>
+      <div class="hint" style="margin-top:8px;">
+        每段影片結束時，該銜接點會 <span style="color:var(--cyan)">送出</span> trigger；
+        收到外部訊號時 <span style="color:var(--green)">亮綠燈</span> 並切段。
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>連線 · WebSocket 主用</h2>
+      <div class="field"><span>WS URL</span><input type="text" id="wsUrl" value="ws://127.0.0.1:9980"></div>
+      <div class="conn">
+        <div class="dot" id="wsDot"></div>
+        <div class="txt" id="wsTxt">未連線</div>
+        <button id="btnWs">連線</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="wsAuto" checked> 斷線自動重連（3s）</label>
+
+      <h2 style="margin-top:16px;">備援 · 本機 HTTP</h2>
+      <div class="field"><span>端點</span><input type="text" id="httpUrl" value="http://127.0.0.1:9980/trigger"></div>
+      <div class="field"><span>輪詢 ms</span><input type="number" id="httpMs" value="500" min="50" step="50"></div>
+      <div class="conn">
+        <div class="dot" id="hDot"></div>
+        <div class="txt" id="hTxt">停用</div>
+        <button id="btnHttp">啟用</button>
+      </div>
+      <div class="hint" style="margin-top:6px;">
+        也接受網址參數：<span style="color:var(--cyan)">?trigger=next</span> ·
+        <span style="color:var(--cyan)">#goto=2</span>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>事件日誌</h2>
+      <div id="log"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button id="btnPing">送測試封包</button>
+        <button id="btnClr">清除</button>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>Infographic 疊層</h2>
+      <label class="chk"><input type="checkbox" id="ovShow" checked> 顯示疊層</label>
+      <label class="chk"><input type="checkbox" id="ovSim" checked> 模擬數據自動跑</label>
+      <div class="field" style="margin-top:8px;">
+        <span>分鏡</span>
+        <select id="ovScene">
+          <option value="auto">跟隨影片段落（自動）</option>
+          <option value="1">SCENE 01 · 偵測數據啟動</option>
+          <option value="2">SCENE 02 · 負壓防護</option>
+          <option value="3">SCENE 03 · 正壓守護 / 深層淨化</option>
+        </select>
+      </div>
+      <div class="field"><span>單段秒數</span><input type="number" id="ovDur" value="14" min="2" step="1" title="影片無長度資訊時，分鏡進度所用的秒數"></div>
+      <div class="field"><span>更新 ms</span><input type="number" id="ovMs" value="220" min="60" step="20"></div>
+      <div class="field"><span>玻璃濃度</span><input type="range" id="ovGlass" min="0" max="1" step="0.02" value="0.42"></div>
+      <div class="field"><span>玻璃模糊</span><input type="range" id="ovBlur" min="0" max="24" step="1" value="7"></div>
+      <div class="hint" style="margin-top:6px;">
+        依分鏡腳本內插：正常 → 飆升 → 淨化；顏色 <span style="color:#3df08a">青綠</span> ·
+        <span style="color:#ff7a4a">橘紅</span> · <span style="color:#45e0c8">青藍</span> 隨分鏡切換。<br>
+        關掉模擬後只吃外部 <span style="color:var(--cyan)">{cmd:'data', co2:700, pm25:200 …}</span>。
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>快捷鍵</h2>
+      <div class="hint">
+        <kbd>F</kbd> 開合介面　<kbd>Space</kbd> 播放/暫停<br>
+        <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 跳段　<kbd>N</kbd> 下一段　<kbd>T</kbd> 手動送 trigger<br>
+        <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> 只切分鏡配色（不動影片）　<kbd>O</kbd> 疊層開關
+      </div>
+    </section>
+
+  </div>
+</aside>
+
+<script>
+"use strict";
+/* ========== 0. 全域狀態 ========== */
+const N = 3;
+const vids = [document.getElementById('v0'),document.getElementById('v1'),document.getElementById('v2')];
+const S = {
+  cur:0, fade:450, mode:'auto', muted:true,
+  srcs:[null,null,null], names:['','',''],
+  junction:['D_T1','D_T2','D_T3'],
+  ws:null, wsOk:false, wsWant:false, wsTimer:null,
+  http:false, httpTimer:null, httpSeen:0,
+  thr:50,
+  values:[46,88,30,64,18],
+  alert:['負壓防護啟動','NO2、CO 上升']
+};
+
+/* ========== 1. 日誌 ========== */
+const logEl = document.getElementById('log');
+function log(msg, kind){
+  const t = new Date().toTimeString().slice(0,8);
+  const d = document.createElement('div');
+  if(kind) d.className = kind;
+  d.textContent = t + ' ' + (kind==='o'?'↑':kind==='i'?'↓':'·') + ' ' + msg;
+  logEl.appendChild(d);
+  while(logEl.children.length>200) logEl.removeChild(logEl.firstChild);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+/* ========== 2. 影片輪播 ========== */
+const novideo = document.getElementById('novideo');
+function hasAny(){ return S.srcs.some(Boolean); }
+function nextIdx(from){
+  for(let k=1;k<=N;k++){ const i=(from+k)%N; if(S.srcs[i]) return i; }
+  return S.srcs[from] ? from : -1;
+}
+function prevIdx(from){
+  for(let k=1;k<=N;k++){ const i=(from-k+N*2)%N; if(S.srcs[i]) return i; }
+  return S.srcs[from] ? from : -1;
+}
+function setSource(i, url, name){
+  const old = S.srcs[i];
+  if(old && old.indexOf('blob:')===0) URL.revokeObjectURL(old);
+  S.srcs[i]=url; S.names[i]=name||'';
+  const v=vids[i];
+  if(url){ v.src=url; v.load(); } else { v.removeAttribute('src'); try{v.load();}catch(e){} }
+  novideo.classList.toggle('hide', hasAny());
+  renderSlots(); renderChain();
+  if(url && (i===S.cur || !hasCurrent())) show(i,false);
+  log('stage '+(i+1)+' 來源 = '+(name||url||'（清除）'));
+}
+function hasCurrent(){ return !!S.srcs[S.cur]; }
+function show(i, emit){
+  if(i<0 || !S.srcs[i]) return;
+  const prev = S.cur;
+  S.cur = i;
+  vids.forEach((v,k)=>{
+    v.style.transitionDuration = S.fade+'ms';
+    v.classList.toggle('on', k===i);
+    if(k!==i){ try{ v.pause(); }catch(e){} }
+  });
+  const v = vids[i];
+  v.muted = S.muted;
+  v.loop  = (S.mode==='hold');
+  try{ v.currentTime = 0; }catch(e){}
+  v.play().catch(()=>{});
+  renderSlots(); renderChain();
+  // 分鏡跟著影片段落走
+  try{ if(document.getElementById('ovScene').value==='auto') setScene(i,false); }catch(e){}
+  if(emit!==false && prev!==i) fire(prev, i, 'stage_start');
+}
+function onEnded(i){
+  if(i!==S.cur) return;
+  const nx = nextIdx(i);
+  fire(i, nx, 'stage_end');
+  if(S.mode==='wait'){ log('T'+(i+1)+' 等待外部 trigger…'); setChainWait(i,true); return; }
+  if(S.mode==='hold'){ vids[i].play().catch(()=>{}); return; }
+  show(nx, false);
+}
+vids.forEach((v,i)=>{
+  v.addEventListener('ended',()=>onEnded(i));
+  v.addEventListener('error',()=>{ if(S.srcs[i]) log('stage '+(i+1)+' 載入失敗','e'); });
+});
+
+/* ========== 3. Trigger 通道（銜接處） ========== */
+function fire(from, to, type){
+  const jn = (from>=0 && from<N) ? from : 0;
+  send({
+    src:'Dweb', junction:S.junction[jn], type:type,
+    from:from+1, to:to+1, mode:S.mode, ts:Date.now()
+  });
+  pulse(jn,'out');
+}
+function send(pkt){
+  const s = JSON.stringify(pkt);
+  let sent=false;
+  if(S.ws && S.wsOk){ try{ S.ws.send(s); sent=true; }catch(e){} }
+  try{ if(window.parent && window.parent!==window) window.parent.postMessage(pkt,'*'); }catch(e){}
+  if(S.http){
+    const u=document.getElementById('httpUrl').value.trim();
+    if(u){
+      fetch(u,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:s}).catch(()=>{});
+      sent=true;
+    }
+  }
+  log((pkt.junction||'—')+' '+(pkt.type||pkt.cmd||'')+' '+(pkt.from||'')+'→'+(pkt.to||'')+(sent?'':'（無連線）'),'o');
+}
+function receive(data, srcTag){
+  let p = data;
+  if(typeof p === 'string'){
+    const t = p.trim();
+    if(t.charAt(0)==='{'){ try{ p = JSON.parse(t); }catch(e){ p={cmd:t}; } }
+    else p = {cmd:t};
+  }
+  if(!p || typeof p!=='object') return;
+  if(p.src==='Dweb') return;                       // 忽略自己送出的回音
+  const cmd = String(p.cmd||p.command||p.type||'').toLowerCase();
+  log(srcTag+' '+JSON.stringify(p).slice(0,90),'i');
+  if(typeof window.Dweb.onTrigger === 'function'){ try{ window.Dweb.onTrigger(p); }catch(e){} }
+
+  if(cmd==='next' || cmd==='trigger' || cmd==='advance'){
+    pulse(S.cur,'in'); setChainWait(S.cur,false); show(nextIdx(S.cur), false);
+  } else if(cmd==='prev'){
+    pulse(S.cur,'in'); show(prevIdx(S.cur), false);
+  } else if(cmd==='goto' || cmd==='stage'){
+    const n = parseInt(p.stage!=null?p.stage:p.value,10);
+    if(n>=1 && n<=N){ pulse(S.cur,'in'); setChainWait(S.cur,false); show(n-1,false); }
+  } else if(cmd==='play'){ vids[S.cur].play().catch(()=>{}); }
+  else if(cmd==='pause'){ vids[S.cur].pause(); }
+  else if(cmd==='scene'){
+    const n=parseInt(p.n!=null?p.n:p.value,10);
+    if(n>=1 && n<=3){
+      document.getElementById('ovScene').value=String(n);
+      setScene(n-1,true);
+    }
+  }
+  else if(cmd==='data'){
+    // 陣列：[co2, hcho, tvoc, pm1, pm25, pm10]；或用鍵名個別給值
+    if(Array.isArray(p.values)) S.values = p.values.slice(0,6).map(Number);
+    METRICS.forEach((m,i)=>{ if(p[m.k]!=null) S.values[i]=Number(p[m.k]); });
+    S.override = true;
+    const sim=document.getElementById('ovSim'); if(sim.checked) sim.checked=false;
+    if(p.alert || p.sub){
+      S.alert=[p.alert?String(p.alert):S.alert[0], p.sub?String(p.sub):S.alert[1]];
+      drawAlert(true);
+    }
+    renderInfo(false);
+  }
+}
+window.addEventListener('message', e=>{
+  if(e.data && (e.data.cmd || e.data.command)) receive(e.data,'postMessage');
+});
+function pulse(jn, dir){
+  const box = document.getElementById('jn'+jn);
+  if(!box) return;
+  const el = box.querySelector('.lamp.'+dir);
+  if(el) el.classList.add('on');
+  box.classList.add('hit');
+  setTimeout(()=>{ if(el) el.classList.remove('on'); box.classList.remove('hit'); }, 420);
+}
+function setChainWait(jn, on){
+  const box=document.getElementById('jn'+jn);
+  if(box) box.style.borderLeftColor = on ? 'var(--amber)' : '';
+}
+
+/* ========== 4. WebSocket + HTTP 備援 ========== */
+const wsDot=document.getElementById('wsDot'), wsTxt=document.getElementById('wsTxt'), btnWs=document.getElementById('btnWs');
+function wsConnect(){
+  const url = document.getElementById('wsUrl').value.trim();
+  if(!url) return;
+  wsClose(true);
+  wsDot.className='dot wait'; wsTxt.textContent='連線中…'; btnWs.textContent='中斷';
+  try{ S.ws = new WebSocket(url); }
+  catch(e){ wsDot.className='dot'; wsTxt.textContent='URL 無效'; log('WS URL 無效','e'); return; }
+  S.ws.onopen = ()=>{ S.wsOk=true; wsDot.className='dot ok'; wsTxt.textContent='已連線 '+url; log('WS 已連線 '+url); };
+  S.ws.onmessage = e=> receive(e.data,'WS');
+  S.ws.onerror = ()=>{ log('WS 錯誤','e'); };
+  S.ws.onclose = ()=>{
+    S.wsOk=false; wsDot.className='dot'; wsTxt.textContent='未連線'; btnWs.textContent='連線';
+    if(document.getElementById('wsAuto').checked && S.wsWant){
+      wsTxt.textContent='3s 後重連…'; wsDot.className='dot wait';
+      S.wsTimer=setTimeout(wsConnect,3000);
+    }
+  };
+}
+function wsClose(silent){
+  clearTimeout(S.wsTimer); S.wsTimer=null;
+  if(S.ws){ try{ S.ws.onclose=null; S.ws.close(); }catch(e){} S.ws=null; }
+  S.wsOk=false;
+  if(!silent){ wsDot.className='dot'; wsTxt.textContent='未連線'; btnWs.textContent='連線'; }
+}
+btnWs.onclick = ()=>{
+  const busy = S.wsOk || S.wsTimer || (S.ws && S.ws.readyState===0);
+  if(busy){ S.wsWant=false; wsClose(); } else { S.wsWant=true; wsConnect(); }
+};
+
+const hDot=document.getElementById('hDot'), hTxt=document.getElementById('hTxt'), btnHttp=document.getElementById('btnHttp');
+function httpTick(){
+  const url=document.getElementById('httpUrl').value.trim();
+  if(!url) return;
+  fetch(url+(url.indexOf('?')>=0?'&':'?')+'since='+S.httpSeen,{cache:'no-store'})
+    .then(r=>r.ok?r.text():Promise.reject(r.status))
+    .then(txt=>{
+      hDot.className='dot ok'; hTxt.textContent='輪詢中 '+url;
+      const t=(txt||'').trim();
+      if(!t || t==='null' || t==='{}' || t==='none') return;
+      S.httpSeen=Date.now();
+      receive(t,'HTTP');
+    })
+    .catch(()=>{ hDot.className='dot wait'; hTxt.textContent='端點無回應'; });
+}
+function httpToggle(on){
+  S.http=on; clearInterval(S.httpTimer);
+  if(on){
+    const ms=Math.max(50,+document.getElementById('httpMs').value||500);
+    S.httpTimer=setInterval(httpTick,ms); httpTick();
+    btnHttp.textContent='停用'; hDot.className='dot wait'; hTxt.textContent='啟用中…';
+    log('HTTP 備援啟用');
+  }else{
+    btnHttp.textContent='啟用'; hDot.className='dot'; hTxt.textContent='停用';
+    log('HTTP 備援停用');
+  }
+}
+btnHttp.onclick = ()=>httpToggle(!S.http);
+document.getElementById('httpMs').onchange = ()=>{ if(S.http) httpToggle(true); };
+
+function readUrlTrigger(){
+  const q = new URLSearchParams(location.search).get('trigger');
+  if(q) receive(q,'URL');
+  const h = location.hash.replace('#','');
+  if(h.indexOf('goto=')===0) receive({cmd:'goto',stage:+h.split('=')[1]},'HASH');
+  else if(h) receive(h,'HASH');
+}
+window.addEventListener('hashchange', readUrlTrigger);
+
+/* ========== 5. 面板 UI ========== */
+const slotsEl=document.getElementById('slots');
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function renderSlots(){
+  if(slotsEl.contains(document.activeElement) && document.activeElement.type==='text') return;
+  slotsEl.innerHTML='';
+  for(let i=0;i<N;i++){
+    const path = (S.srcs[i] && S.srcs[i].indexOf('blob:')!==0) ? esc(S.srcs[i]) : '';
+    const d=document.createElement('div');
+    d.className='slot'+(S.srcs[i]?' live':'')+((i===S.cur&&S.srcs[i])?' cur':'');
+    d.dataset.i=i;
+    d.innerHTML =
+      '<div class="top">'+
+        '<div class="tag">STAGE 0'+(i+1)+'</div>'+
+        '<div class="st">'+(S.names[i]?esc(S.names[i]):'拖放影片到此 · 或選擇檔案')+'</div>'+
+      '</div>'+
+      '<div class="row">'+
+        '<label class="file">選擇<input type="file" accept="video/*" data-i="'+i+'"></label>'+
+        '<input type="text" placeholder="或路徑 / URL：stage'+(i+1)+'.mp4" data-path="'+i+'" value="'+path+'">'+
+        '<button data-clr="'+i+'">✕</button>'+
+      '</div>';
+    slotsEl.appendChild(d);
+  }
+}
+slotsEl.addEventListener('change', e=>{
+  const f=e.target;
+  if(f.type==='file' && f.files && f.files[0]){
+    const i=+f.dataset.i, file=f.files[0];
+    setSource(i, URL.createObjectURL(file), file.name);
+  }
+  if(f.dataset.path!=null){
+    const i=+f.dataset.path, val=f.value.trim();
+    setSource(i, val||null, val);
+  }
+});
+slotsEl.addEventListener('click', e=>{
+  const b=e.target.closest('[data-clr]');
+  if(b) setSource(+b.dataset.clr, null, '');
+});
+slotsEl.addEventListener('dragover', e=>{
+  const s=e.target.closest('.slot'); if(!s) return;
+  e.preventDefault(); s.classList.add('drag');
+});
+slotsEl.addEventListener('dragleave', e=>{
+  const s=e.target.closest('.slot'); if(s) s.classList.remove('drag');
+});
+slotsEl.addEventListener('drop', e=>{
+  const s=e.target.closest('.slot'); if(!s) return;
+  e.preventDefault(); s.classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f) setSource(+s.dataset.i, URL.createObjectURL(f), f.name);
+});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>e.preventDefault());
+
+const chainEl=document.getElementById('chain');
+function renderChain(){
+  if(chainEl.contains(document.activeElement)) return;   // 使用者正在輸入時不重繪
+  chainEl.innerHTML='';
+  for(let i=0;i<N;i++){
+    const to=(i+1)%N;
+    const n=document.createElement('div');
+    n.className='node'+(i===S.cur?' act':'');
+    n.innerHTML='<div>STAGE 0'+(i+1)+'</div><div class="n">'+(S.srcs[i]?'● 已載入':'○ 空')+'</div>';
+    chainEl.appendChild(n);
+
+    const j=document.createElement('div');
+    j.className='jn'; j.id='jn'+i;
+    j.innerHTML =
+      '<div class="id">T'+(i+1)+'</div>'+
+      '<input type="text" data-jn="'+i+'" value="'+esc(S.junction[i])+'" title="通道名稱 · 送出封包的 junction 欄位">'+
+      '<button data-fire="'+i+'" title="手動送出此銜接點 trigger">送</button>'+
+      '<div class="io"><i class="lamp out" title="送出"></i><i class="lamp in" title="接收"></i></div>';
+    chainEl.appendChild(j);
+
+    const a=document.createElement('div');
+    a.className='node'; a.style.opacity='.45';
+    a.innerHTML='<div style="font-size:9px;letter-spacing:.14em;">↳ 接 STAGE 0'+(to+1)+'</div>';
+    chainEl.appendChild(a);
+  }
+}
+chainEl.addEventListener('input', e=>{
+  if(e.target.dataset.jn!=null) S.junction[+e.target.dataset.jn]=e.target.value;
+});
+chainEl.addEventListener('click', e=>{
+  const b=e.target.closest('[data-fire]');
+  if(b){ const i=+b.dataset.fire; fire(i,(i+1)%N,'manual'); }
+});
+
+/* ========== 6. infographic 疊層（依分鏡腳本） ==========
+   分鏡一 SCENE 01 · 偵測數據啟動   → 六項指標正常（青綠）
+   分鏡二 SCENE 02 · 負壓防護       → 油煙 → 數值飆升 → 抽油煙機排出（橘紅）
+   分鏡三 SCENE 03 · 正壓守護／深層淨化 → 微正壓 → 曲線下降 → 健康淨化報告（青藍）
+   ------------------------------------------------------------------
+   數值會隨「該段影片的播放進度」在 from → to 之間內插，
+   所以影片切段時 infographic 的顏色、文字、曲線會一起換。
+   ================================================================== */
+const METRICS=[
+  {k:'co2',  name:'CO₂',   unit:'ppm',   max:1200, lim:1000, dp:0},
+  {k:'hcho', name:'HCHO',  unit:'ppm',   max:0.12, lim:0.08, dp:2},
+  {k:'tvoc', name:'TVOC',  unit:'mg/m³', max:3.0,  lim:0.60, dp:2},
+  {k:'pm1',  name:'PM1',   unit:'µg/m³', max:120,  lim:35,   dp:0},
+  {k:'pm25', name:'PM2.5', unit:'µg/m³', max:220,  lim:35,   dp:0},
+  {k:'pm10', name:'PM10',  unit:'µg/m³', max:180,  lim:75,   dp:0}
+];
+const BASE = [50, 0.03, 0.20,   8,  10,  20];   // 分鏡二腳本：正常值
+const PEAK = [700,0.05, 2.50, 100, 200, 150];   // 分鏡三腳本：油煙峰值
+const CLEAN= [480,0.03, 0.25,  12,  10,  20];   // 分鏡四腳本：淨化後
+
+const SCENES=[
+  { tag:'SCENE 01', name:'偵測數據啟動', cls:'s1', trend:'flat',
+    from:BASE, to:BASE,
+    beats:[[0.00,'偵測數據啟動','AI 即時監測空氣品質'],
+           [0.45,'空氣品質正常','六項指標均在標準內']] },
+  { tag:'SCENE 02', name:'負壓防護', cls:'s2', trend:'up',
+    from:BASE, to:PEAK,
+    beats:[[0.00,'烹飪情境偵測','爐火啟動 · 油煙擴散'],
+           [0.35,'空氣數值異常','TVOC、PM2.5 急速上升'],
+           [0.62,'負壓防護啟動','抽油煙機強力運轉 · 排出']] },
+  { tag:'SCENE 03', name:'正壓守護 · 深層淨化', cls:'s3', trend:'down',
+    from:PEAK, to:CLEAN,
+    beats:[[0.00,'正壓守護啟動','新風送入潔淨空氣 · 微正壓'],
+           [0.42,'深層淨化中','清除殘留 SVOCs · 曲線下降'],
+           [0.85,'健康淨化報告','空氣品質已恢復正常']] }
+];
+const ST_TXT={
+  flat:['正常','偏高','超標','異常'],
+  up  :['正常','輕度上升','超標','重度飆升'],
+  down:['已達標','回落中','仍偏高','下降中']
+};
+
+/* --- AQI（以 PM2.5 換算，US EPA 分級） --- */
+const AQI_BP=[[0,12,0,50],[12.1,35.4,51,100],[35.5,55.4,101,150],
+              [55.5,150.4,151,200],[150.5,250.4,201,300],[250.5,500,301,500]];
+const AQI_CAT=[[50,'良好'],[100,'普通'],[150,'敏感族群不健康'],
+               [200,'不健康'],[300,'非常不健康'],[9999,'危害']];
+function aqiFromPM25(c){
+  for(const [lo,hi,il,ih] of AQI_BP){
+    if(c<=hi) return Math.round(il+(ih-il)*(Math.max(c,lo)-lo)/(hi-lo));
+  }
+  return 500;
+}
+function aqiCat(a){ for(const [t,n] of AQI_CAT){ if(a<=t) return n; } return '危害'; }
+
+/* --- 狀態 --- */
+const infoEl2=document.getElementById('info');
+const alertEl=document.getElementById('alert');
+const metricsEl=document.getElementById('metrics');
+let sceneI=0, sceneT0=performance.now(), beatI=-1;
+let disp=BASE.slice(), aqiHist=[];
+S.values=BASE.slice();
+S.override=false;                       // 外部 data 接管時為 true
+
+/* --- 建立六列 --- */
+const rowEls=[];
+METRICS.forEach((m,i)=>{
+  const d=document.createElement('div');
+  d.className='m';
+  d.innerHTML =
+    '<div class="mk">'+m.name+'</div>'+
+    '<div class="mv"><b>0</b><i>'+m.unit+'</i></div>'+
+    '<div class="mbar"><span class="fill"></span><em class="tick"></em></div>'+
+    '<div class="ms sev0">正常</div>';
+  metricsEl.appendChild(d);
+  d.querySelector('.tick').style.left=(Math.min(1,m.lim/m.max)*100)+'%';
+  rowEls.push({root:d, v:d.querySelector('.mv b'), fill:d.querySelector('.fill'), st:d.querySelector('.ms')});
+});
+
+function sevOf(v,m){ const r=v/m.lim; return r<0.5?0 : r<1?1 : r<2?2 : 3; }
+function fmt(v,dp){ return dp?v.toFixed(dp):Math.round(v).toLocaleString('en-US'); }
+
+/* --- 分鏡切換 --- */
+function setScene(i, hard){
+  i=Math.max(0,Math.min(SCENES.length-1,i));
+  const sc=SCENES[i];
+  if(i!==sceneI || hard){
+    sceneI=i; beatI=-1; sceneT0=performance.now();
+    if(!hard) disp = sc.from.slice();
+  }
+  infoEl2.className='info '+sc.cls;
+  document.getElementById('sceneTag').textContent=sc.tag;
+  document.getElementById('sceneName').textContent=sc.name;
+  renderInfo(true);
+}
+function sceneProgress(){
+  const sceneSel=document.getElementById('ovScene').value;
+  const v=vids[S.cur];
+  if(sceneSel==='auto' && v && v.duration && isFinite(v.duration) && v.duration>0){
+    return Math.max(0,Math.min(1, v.currentTime/v.duration));
+  }
+  const dur=Math.max(2,+document.getElementById('ovDur').value||14)*1000;
+  return Math.max(0,Math.min(1,(performance.now()-sceneT0)/dur));
+}
+
+/* --- 每幀更新 --- */
+function drawAlert(flash){
+  document.getElementById('al1').textContent=S.alert[0];
+  document.getElementById('al2').textContent=S.alert[1];
+  if(flash){ alertEl.classList.remove('flash'); void alertEl.offsetWidth; alertEl.classList.add('flash'); }
+}
+function renderInfo(force){
+  const sc=SCENES[sceneI], p=sceneProgress();
+
+  /* 目標值：from → to（緩入緩出）+ 微幅雜訊 */
+  if(!S.override){
+    const e = p*p*(3-2*p);
+    METRICS.forEach((m,i)=>{
+      const tgt = sc.from[i] + (sc.to[i]-sc.from[i])*e;
+      const noise = tgt * (Math.random()-.5) * 0.035;
+      disp[i] += ((tgt+noise) - disp[i]) * 0.22;
+    });
+    S.values = disp.slice();
+  } else {
+    disp = S.values.slice();
+  }
+
+  /* 六列 */
+  METRICS.forEach((m,i)=>{
+    const v=Math.max(0,S.values[i]), sev=sevOf(v,m), r=rowEls[i];
+    r.v.textContent=fmt(v,m.dp);
+    r.fill.style.width=Math.min(100,(v/m.max)*100).toFixed(1)+'%';
+    r.st.textContent=ST_TXT[sc.trend][sev];
+    r.st.className='ms sev'+sev;
+    r.root.className='m lv'+sev;
+  });
+
+  /* AQI 環 */
+  const aqi=aqiFromPM25(S.values[4]);
+  document.getElementById('aqiV').textContent=aqi;
+  document.getElementById('aqiC').textContent=aqiCat(aqi);
+  const C=182.2, frac=Math.min(1,aqi/300);
+  document.getElementById('aqiArc').setAttribute('stroke-dashoffset', (C*(1-frac)).toFixed(1));
+  document.getElementById('sparkNow').textContent=aqi;
+
+  /* 趨勢曲線 */
+  aqiHist.push(aqi);
+  while(aqiHist.length>120) aqiHist.shift();
+  drawSpark();
+
+  /* 段落文字 */
+  let bi=0;
+  for(let k=0;k<sc.beats.length;k++){ if(p>=sc.beats[k][0]) bi=k; }
+  if(bi!==beatI || force){
+    beatI=bi;
+    S.alert=[sc.beats[bi][1], sc.beats[bi][2]];
+    drawAlert(!force);
+  }
+}
+function drawSpark(){
+  const W=260,H=40,n=aqiHist.length;
+  if(n<2){ return; }
+  const mx=Math.max(60,...aqiHist)*1.12;
+  const pts=aqiHist.map((a,i)=>{
+    const x=(i/(n-1))*W;
+    const y=H-2-(a/mx)*(H-5);
+    return x.toFixed(1)+','+y.toFixed(1);
+  });
+  document.getElementById('sparkLine').setAttribute('points',pts.join(' '));
+  document.getElementById('sparkFill').setAttribute('points','0,'+H+' '+pts.join(' ')+' '+W+','+H);
+}
+
+/* --- 節拍器 --- */
+let simTimer=null;
+function simToggle(on){
+  clearInterval(simTimer);
+  if(on){
+    const ms=Math.max(100,+document.getElementById('ovMs').value||220);
+    simTimer=setInterval(()=>renderInfo(false),ms);
+  }
+}
+/* 相容舊呼叫 */
+function drawChart(){ renderInfo(true); }
+
+/* ========== 7. 面板開合 + 快捷鍵 ========== */
+const panel=document.getElementById('panel'), fhint=document.getElementById('fhint');
+function togglePanel(force){
+  const open = (force!=null) ? force : !panel.classList.contains('open');
+  panel.classList.toggle('open',open);
+  panel.setAttribute('aria-hidden', String(!open));
+  fhint.classList.add('gone');
+}
+function typing(e){
+  const t=e.target;
+  return t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable);
+}
+document.addEventListener('keydown', e=>{
+  if(typing(e)){ if(e.key==='Escape') e.target.blur(); return; }
+  const k=e.key.toLowerCase();
+  if(k==='f'){ e.preventDefault(); togglePanel(); }
+  else if(k==='escape'){ togglePanel(false); }
+  else if(k===' '){ e.preventDefault(); const v=vids[S.cur]; v.paused?v.play().catch(()=>{}):v.pause(); }
+  else if(k==='n'){ show(nextIdx(S.cur),false); }
+  else if(k==='t'){ fire(S.cur,(S.cur+1)%N,'manual'); }
+  else if(k==='o'){ const c=document.getElementById('ovShow'); c.checked=!c.checked; c.dispatchEvent(new Event('change')); }
+  else if(k==='1'||k==='2'||k==='3'){ show(+k-1,false); }
+  else if(k==='q'||k==='w'||k==='e'){        // 不動影片，只預覽分鏡配色
+    const n={q:1,w:2,e:3}[k];
+    document.getElementById('ovScene').value=String(n);
+    setScene(n-1,true);
+  }
+});
+
+/* ========== 8. 控制項 ========== */
+document.getElementById('btnPlay').onclick=e=>{
+  const v=vids[S.cur];
+  if(v.paused){ v.play().catch(()=>{}); e.target.textContent='❚❚ 暫停'; }
+  else { v.pause(); e.target.textContent='▶ 播放'; }
+};
+document.getElementById('btnNext').onclick=()=>show(nextIdx(S.cur),false);
+document.getElementById('btnPrev').onclick=()=>show(prevIdx(S.cur),false);
+document.getElementById('btnMute').onclick=e=>{
+  S.muted=!S.muted; vids.forEach(v=>v.muted=S.muted);
+  e.target.textContent=S.muted?'🔇':'🔊';
+};
+document.getElementById('mode').onchange=e=>{
+  S.mode=e.target.value;
+  vids.forEach(v=>v.loop=(S.mode==='hold'));
+  log('模式 → '+S.mode);
+};
+document.getElementById('fade').onchange=e=>{ S.fade=Math.max(0,+e.target.value||0); };
+document.getElementById('btnPing').onclick=()=>send({src:'Dweb',type:'ping',junction:S.junction[S.cur],from:S.cur+1,to:((S.cur+1)%N)+1,ts:Date.now()});
+document.getElementById('btnClr').onclick=()=>{ logEl.innerHTML=''; };
+document.getElementById('ovShow').onchange=e=>{ document.getElementById('info').style.display=e.target.checked?'':'none'; };
+document.getElementById('ovSim').onchange=e=>{ S.override=!e.target.checked; };
+document.getElementById('ovMs').onchange=()=>simToggle(true);
+document.getElementById('ovScene').onchange=e=>{
+  if(e.target.value==='auto') setScene(S.cur,true);
+  else setScene(parseInt(e.target.value,10)-1,true);
+  log('分鏡 → '+SCENES[sceneI].tag+' · '+SCENES[sceneI].name);
+};
+document.getElementById('ovDur').onchange=()=>{ sceneT0=performance.now(); };
+const infoEl=document.getElementById('info');
+document.getElementById('ovGlass').oninput=e=>infoEl.style.setProperty('--glass',e.target.value);
+document.getElementById('ovBlur').oninput=e=>infoEl.style.setProperty('--glass-blur',e.target.value+'px');
+
+/* ========== 9. 對外 API ========== */
+window.Dweb = {
+  next:()=>show(nextIdx(S.cur),false),
+  prev:()=>show(prevIdx(S.cur),false),
+  goto:n=>show(n-1,false),
+  play:()=>vids[S.cur].play().catch(()=>{}),
+  pause:()=>vids[S.cur].pause(),
+  scene:n=>{ document.getElementById('ovScene').value=String(n); setScene(n-1,true); },
+  data:o=>receive(Object.assign({cmd:'data'},o),'API'),
+  send:send, receive:receive, state:S, onTrigger:null
+};
+
+/* ========== 10. 啟動 ========== */
+renderSlots(); renderChain();
+setScene(0,true);
+simToggle(true);
+readUrlTrigger();
+['stage1.mp4','stage2.mp4','stage3.mp4'].forEach((f,i)=>{
+  fetch(f,{method:'HEAD'}).then(r=>{ if(r.ok) setSource(i,f,f); }).catch(()=>{});
+});
+setTimeout(()=>fhint.classList.add('gone'), 6000);
+log('Dweb 就緒 · 按 F 開啟介面');
+</script>
+</body>
+</html>
