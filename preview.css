@@ -1,0 +1,5 @@
+/* Physical bezel is always visible. Reference guide adds its safe margins. */
+.seam{opacity:1!important;left:calc(50% - .35%);width:.7%;background:#000;box-shadow:-1px 0 #27303a,1px 0 #27303a}
+main.guide .seam::before,main.guide .seam::after{content:'';position:absolute;top:0;bottom:0;border-left:1px dashed #6fc8f6}
+main.guide .seam::before{left:-750%}main.guide .seam::after{right:-750%}
+header select{background:#102d4f;color:#cfe2ff;padding:9px;border:1px solid #516587;border-radius:6px;font:inherit}

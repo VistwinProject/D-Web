@@ -2,3 +2,12 @@
 *.mp4
 *.mov
 *.webm
+__pycache__/
+assets/*.blend
+assets/*.blend1
+assets/*-review.png
+assets/*-inventory.json
+assets/export.log
+
+# Approved ambient film is included in the Pages exhibition.
+!film.mp4

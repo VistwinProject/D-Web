@@ -26,7 +26,7 @@ const FILES = path.join(OUT, "files");
 
 /* 1 · 本頁用到的字：只挑 CJK 與全形（U+2E80 以上、排除 emoji）。
        符號（▶ ◀ ● ○ ↳ …）交給 Inter / 系統字，它們不受字重塌陷影響。 */
-const src = fs.readFileSync(path.join(ROOT, "Dweb.html"), "utf8");
+const src = ['Dweb.html','theater.js','kitchen-stage.js','preview.html'].filter(f=>fs.existsSync(path.join(ROOT,f))).map(f=>fs.readFileSync(path.join(ROOT,f),'utf8')).join('\n');
 const used = new Set([...src].map(c => c.codePointAt(0)).filter(cp => cp >= 0x2E80 && cp < 0x1F000));
 console.log(`Dweb.html 用到的 CJK / 全形字元：${used.size}`);
 
@@ -47,7 +47,8 @@ const toRange = cps => {                       // [1,2,3,7] → "U+0001-0003,U+0
   return out.join(",");
 };
 
-fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(FILES, { recursive: true });
+if(path.resolve(OUT)!==path.join(ROOT,'fonts')) throw new Error('Unexpected font output path');
+fs.mkdirSync(FILES, { recursive: true });
 let css = `/* 由 tools/build-fonts.mjs 產生 —— 不要手改。改了頁面文字要重跑。
    Chiron Hei HK：@fontsource/chiron-hei-hk 分塊 → pyftsubset 裁到本頁字元，四級字重。
    Inter：@fontsource-variable/inter 可變字型 latin + latin-ext。
@@ -62,7 +63,8 @@ for (const w of WEIGHTS) {
     if (!hit.length) continue;
     hit.forEach(cp => covered.add(cp));
     const name = path.basename(b.file);
-    execFileSync(PY, ["-m", "fontTools.subset", path.join(CHIRON, "files", name),
+    if(process.argv.includes('--full-blocks')) fs.copyFileSync(path.join(CHIRON,'files',name),path.join(FILES,name));
+    else execFileSync(PY, ["-m", "fontTools.subset", path.join(CHIRON, "files", name),
       `--unicodes=${toRange(hit)}`, "--flavor=woff2", "--no-hinting", "--desubroutinize",
       `--output-file=${path.join(FILES, name)}`], { stdio: "pipe" });
     bytes += fs.statSync(path.join(FILES, name)).size; n++;

@@ -1,0 +1,34 @@
+body.theater .stage video{filter:grayscale(1);opacity:.16;mix-blend-mode:screen}
+body.theater #v1,body.theater #v2{display:none}
+body.theater .stage{background:radial-gradient(ellipse at 73% 40%,#102d4f,#000206 80%)}
+body.theater .info{left:5cqw;width:28cqw}
+.story{position:absolute;inset:0;pointer-events:none;color:var(--ink);z-index:3}
+.story header{position:absolute;top:5cqw;left:5cqw;right:5cqw;display:flex;justify-content:space-between;font-size:1.2cqw;letter-spacing:.14em;color:var(--cyan)}
+.story h1{position:absolute;top:12cqw;left:42cqw;right:5cqw;font-size:3.4cqw;font-weight:500;line-height:1.3;margin:0}
+.story .desc{position:absolute;top:23cqw;left:42cqw;width:49cqw;font-size:1.6cqw;line-height:1.7;color:var(--ink-2)}
+.air-diagram{position:absolute;left:39cqw;top:36cqw;width:56cqw;height:40cqw;overflow:visible}
+.air-diagram .room{fill:#071727;stroke:#516587;stroke-width:1.5}
+.air-diagram text{font-family:var(--font);font-size:16px;fill:#cfe2ff;letter-spacing:1px}
+.air-diagram .equipment{fill:#102d4f;stroke:#6fc8f6;stroke-width:1.5}
+.air-diagram .flow{fill:none;stroke:#6fc8f6;stroke-width:2;opacity:.4}
+.story .caption{position:absolute;left:42cqw;top:78cqw;font-size:1.2cqw;color:var(--ink-dim)}
+.story .report{position:absolute;left:42cqw;top:69cqw;right:6cqw;padding:2cqw;background:#071727;border-top:.1cqw solid var(--cyan);font-size:1.4cqw;display:none}
+.story[data-scene="6"] .report{display:block}
+.story[data-scene="6"] .caption{top:84cqw}
+.story[data-scene="6"] .air-diagram{opacity:.35}
+.pollutants{display:none;position:absolute;left:42cqw;right:6cqw;top:36cqw;grid-template-columns:1fr 1fr;gap:1.3cqw}
+.story[data-scene="1"] .pollutants{display:grid}.story[data-scene="1"] .air-diagram,.story[data-scene="1"] .caption{display:none}
+.pollutants>div{padding:1.6cqw;border:.1cqw solid #516587;background:#071727;opacity:.55}
+.pollutants>div.active{border-color:#6fc8f6;opacity:1;background:#102d4f}
+.pollutants b{font-size:2.4cqw;font-weight:500;color:#6fc8f6}.pollutants span{display:block;font-size:1.6cqw}.pollutants small{display:block;font-size:1.2cqw;color:#95aac5}
+.story footer{position:absolute;left:5cqw;right:5cqw;bottom:5cqw;border-top:.1cqw solid #516587;padding-top:1.6cqw;font-size:1.2cqw;display:flex;justify-content:space-between;color:var(--ink-dim)}
+.story-progress{position:absolute;left:5cqw;right:5cqw;bottom:11cqw;display:flex;gap:.6cqw}
+.story-progress span{height:.25cqw;background:#102d4f;flex:1}.story-progress span.active{background:var(--cyan)}
+#storyControl{background:#071727;padding:18px;border-bottom:1px solid #516587}
+#storyControl h2{margin:0 0 12px;font-size:15px;font-weight:500}
+#storyControl .buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#storyControl button{font:inherit;font-size:12px;padding:8px;color:#cfe2ff;background:#102d4f;border:1px solid #516587;border-radius:6px;cursor:pointer}
+#storyControl button[aria-pressed="true"]{border-color:#6fc8f6;background:#255cc9}
+#storyControl input{width:100%;margin:14px 0;accent-color:#6fc8f6}
+#storyControl output{display:block;font-size:12px;color:#95aac5;margin-top:8px}
+body.theater #panel{overflow-y:auto}body.theater #panel .sec:has(#filmSlot),body.theater #panel .sec:has(#slots){display:none}

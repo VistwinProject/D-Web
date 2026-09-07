@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dweb — 展區 D：居家風險劇場</title>
 <link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="theater.css">
+<link rel="stylesheet" href="cinema.css">
 <!--
   ============================================================
   Dweb — 展區 D 居家風險劇場 · 影片輪播 + 空氣數據疊層 + Trigger 通道
@@ -718,6 +720,7 @@ function show(i, emit){
   if(emit!==false && prev!==i) fire(prev, i, 'stage_start');
 }
 function onEnded(i){
+  if(window.theaterActive) return;
   if(filmActive()){                                   // 單支影片片尾：T3 → 回 01
     if(i!==0) return;
     fire(N-1, 0, 'stage_end');
@@ -769,6 +772,7 @@ function setFilm(url, name){
   log('單支影片 = '+(name||url||'（清除）'));
 }
 filmV.addEventListener('timeupdate', ()=>{
+  if(window.theaterActive) return;
   if(!filmActive() || !(filmV.duration>0)) return;
   const ch=filmChapter(filmV.currentTime);
   if(ch===filmChap) return;
@@ -807,7 +811,7 @@ filmSlot.addEventListener('drop',e=>{ e.preventDefault(); filmSlot.classList.rem
 
 /* ========== 3. Trigger 通道（銜接處） ========== */
 function fire(from, to, type){
-  const jn = (from>=0 && from<N) ? from : 0;
+  const jn = (from>=0 && from<(window.theaterActive?6:N)) ? from : 0;
   send({
     src:'Dweb', junction:S.junction[jn], type:type,
     from:from+1, to:to+1, mode:S.mode, ts:Date.now()
@@ -1015,8 +1019,9 @@ const chainEl=document.getElementById('chain');
 function renderChain(){
   if(chainEl.contains(document.activeElement)) return;   // 使用者正在輸入時不重繪
   chainEl.innerHTML='';
-  for(let i=0;i<N;i++){
-    const to=(i+1)%N;
+  const count=window.theaterActive?6:N;
+  for(let i=0;i<count;i++){
+    const to=(i+1)%count;
     const n=document.createElement('div');
     n.className='node'+(i===S.cur?' act':'');
     n.innerHTML='<div>STAGE 0'+(i+1)+'</div><div class="n">'+((S.srcs[i]||filmActive())?'● 已載入':'○ 空')+'</div>';
@@ -1042,7 +1047,7 @@ chainEl.addEventListener('input', e=>{
 });
 chainEl.addEventListener('click', e=>{
   const b=e.target.closest('[data-fire]');
-  if(b){ const i=+b.dataset.fire; fire(i,(i+1)%N,'manual'); }
+  if(b){ const i=+b.dataset.fire; fire(i,(i+1)%(window.theaterActive?6:N),'manual'); }
 });
 
 /* ========== 6. 資訊疊層（依分鏡腳本） ==========
@@ -1169,8 +1174,7 @@ function renderInfo(force){
     const e = p*p*(3-2*p);
     METRICS.forEach((m,i)=>{
       const tgt = sc.from[i] + (sc.to[i]-sc.from[i])*e;
-      const noise = tgt * (Math.random()-.5) * 0.035;
-      disp[i] += ((tgt+noise) - disp[i]) * 0.22;
+      disp[i] = tgt;
     });
     S.values = disp.slice();
   } else {
@@ -1342,5 +1346,8 @@ renderFilm();
 setTimeout(()=>fhint.classList.add('gone'), 6000);
 log('Dweb 就緒 · 按 F 開啟介面');
 </script>
+<script src="theater.js"></script>
+<script type="importmap">{"imports":{"three":"./vendor/build/three.module.js"}}</script>
+<script type="module" src="kitchen-stage.js"></script>
 </body>
 </html>
