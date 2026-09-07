@@ -35,7 +35,7 @@ panel.querySelector('.pb').prepend(control);
 const particles=story.querySelector('#particles');
 for(let i=0;i<65;i++) particles.insertAdjacentHTML('beforeend','<circle r="2" fill="#c0e6fa"/>');
 let anchor=performance.now(), pos=0, playing=true, lastScene=-1, lastRender=0, connected=false, external=null, lost=false, mode='auto',lastStamp=0;
-let ambientPos=Date.now()/1000%30,ambientAnchor=performance.now(),lastVideoSeek=-Infinity;
+let ambientPos=Date.now()/1000%30,ambientAnchor=performance.now(),lastVideoSeek=-Infinity,ambientStarted=false;
 const endpoint=q.get('sync')|| (location.port==='8776'?'/api/state':null);
 let channel= !endpoint && typeof BroadcastChannel!=='undefined' ?new BroadcastChannel(q.get('preview')==='1'?'dweb-preview-six-scenes':'dweb-six-scenes'):null;
 function time(){const raw=Math.max(0,pos+(playing?(performance.now()-anchor)/1000:0));if(!endpoint&&mode==='hold'){const i=idx(pos),end=starts[i+1]||duration;return starts[i]+(raw-starts[i])%(end-starts[i]);}if(!endpoint&&mode==='wait'){const end=starts[idx(pos)+1]||duration;return Math.min(end-.001,raw);}return raw%duration;}
@@ -85,7 +85,10 @@ function frame(now){let t=time();if(!endpoint&&mode==='wait'&&t>=(starts[idx(pos
  if(filmV.readyState>=2&&!filmV.seeking){
   const drift=ambient?((target-filmV.currentTime+period*1.5)%period)-period/2:target-filmV.currentTime;
   // Small clock differences are corrected through playback speed, avoiding repeated decoder seeks.
-  if(Math.abs(drift)>(ambient?1.2:.18)&&now-lastVideoSeek>3000){filmV.currentTime=target;lastVideoSeek=now;}
+  if(ambient){
+   // Align once on initial load. Background-tab throttling must never trigger a visible seek on return.
+   if(!ambientStarted&&!document.hidden){ambientStarted=true;if(Math.abs(drift)>.18)filmV.currentTime=target;}
+  }else if(Math.abs(drift)>.18&&now-lastVideoSeek>3000){filmV.currentTime=target;lastVideoSeek=now;}
   filmV.playbackRate=ambient?1+Math.max(-.04,Math.min(.04,drift*.1)):1;
   if(ambient)filmV.loop=true;if(ambient||playing){if(filmV.paused)filmV.play().catch(()=>{});}else filmV.pause();
  }
