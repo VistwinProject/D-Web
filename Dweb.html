@@ -1,25 +1,44 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" data-zone="D">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dweb — 展區 D：影片輪播 / Trigger 通道</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Dweb — 展區 D：居家風險劇場</title>
+<link rel="stylesheet" href="fonts/fonts.css">
 <!--
   ============================================================
-  Dweb — 網站架構
+  Dweb — 展區 D 居家風險劇場 · 影片輪播 + 空氣數據疊層 + Trigger 通道
   ------------------------------------------------------------
-  1. .stagewrap        全螢幕影片輪播（三段 <video> 交叉淡入）
-  2. .info             左側 infographic 疊層（無背景，只有資訊）
-                       - 警示膠囊 alert pill
-                       - DATA 01 長條圖（SVG，門檻線 50）
-  3. #panel            隱藏側邊介面（按 F 開 / 再按 F 收）
+  1. .stage            1:1 舞台（同 C 區窗景）：三段 <video> 交叉淡入
+  2. .info > .ibody    舞台內左側資訊疊層（玻璃底層在 .ibody::before）
+                       - 分鏡標頭：眉標(英) → 中文名 → 英文副標（E 規範 §10.2）
+                       - 警示膠囊 alert
+                       - 六項指標 + AQI 趨勢
+  3. #panel            隱藏側邊工作面（按 F 開 / 再按 F 收），固定在視口不在舞台
                        3a. 三段影片來源（拖放上傳 / 路徑輸入）
                        3b. Trigger 通道 T1 / T2 / T3（銜接處）
                        3c. 連線設定：WebSocket 主用 + 本機 HTTP 備援
                        3d. 事件日誌
+  ------------------------------------------------------------
+  基準畫布：1:1 舞台，同 C 區窗景（C-Digital-Window/apps/window）。
+            舞台邊長 S = min(100vw, 100dvh) 置中黑底；.stage 標記 container-type，
+            訪客面所有尺寸用 cqw（1cqw = 舞台寬 1%），換任何 1:1 螢幕等比縮放。
+  雙螢幕：  兩台直式電視各開同一網址，L / R（或 ?side=left|right）只看完整畫布的左半 / 右半，
+            S = min(200vw, 100dvh)，兩台算式相同、只有 left 差一個螢幕寬（C 區 UI-SPEC §2.5）。
+  字級階梯（cqw）：1.2 · 1.4 · 1.6 · 1.9 · 2.4
+            1080 舞台 = 13 · 15 · 17 · 21 · 26px；1920 舞台 = 23 · 27 · 31 · 36 · 46px
+  工作面 #panel：固定 400px，字級 11 · 12 · 13 · 15px（無 0.5px 階）
+  字重：400 / 500 / 600 / 700   字型自帶：fonts/fonts.css（tools/build-fonts.mjs 產生）
+  ------------------------------------------------------------
+  值的來源（改要一起改）：Z-Design-System/tokens/
+    blue.css       --blue-300 / 400        取代原 #2fd8ff / #4aa8ff
+    _shared.css    --ink-1 / --ink-2       前景白 / 淺藍描邊
+    blue.css       --slate-400 / 700       次級字 / 三級字（原 #8ba0c6 / #4d5d80）
+    core.css       白 alpha 十一級 · 字距三帶 · 行高 · 圓角 · 線寬 · 時長
+    semantic.css   --st-ok / warn / err    只用在 #panel 工作面
+    motion.css     --ease expo.out
+  訪客面一律藍白單色調（Z docs/05 對 D 的建議）：三個分鏡用 blue.css 不同階的明度區分，
+  數據超標用白階提亮，不用紅 / 橘 / 綠；--violet 已移除（全區唯一的紫）。
   ------------------------------------------------------------
   對外介面：
     window.Dweb.next() / goto(n) / play() / pause()
@@ -35,66 +54,111 @@
     {cmd:'data', values:[co2,hcho,tvoc,pm1,pm25,pm10], alert:'文字', sub:'文字'}
   ------------------------------------------------------------
   分鏡對應（依展區 D 分鏡腳本）：
-    STAGE 01 / SCENE 01  偵測數據啟動        青綠  正常值
-    STAGE 02 / SCENE 02  負壓防護            橘紅  油煙 → 數值飆升 → 抽油煙機排出
-    STAGE 03 / SCENE 03  正壓守護 · 深層淨化  青藍  微正壓 → 曲線下降 → 淨化報告
+    01 · DETECTION          偵測數據啟動        藍 300/500（靜）  正常值
+    02 · NEGATIVE PRESSURE  負壓防護            藍 100/600（亮）  油煙 → 數值飆升 → 抽油煙機排出
+    03 · POSITIVE PRESSURE  正壓守護 · 深層淨化  藍 400/700（深）  微正壓 → 曲線下降 → 淨化報告
   ============================================================
 -->
 <style>
 :root{
+  /* ── 底與前景（Z stage/_shared.css）─────────────────────────────── */
   --bg-0:#000206;
-  --ink:#eaf1ff;
-  --ink-dim:#8ba0c6;
-  --ink-faint:#4d5d80;
-  --cyan:#2fd8ff;
-  --green:#3df08a;
-  --violet:#8b5cff;
-  --amber:#ffb03a;
-  --red:#ff4d6a;
-  --r:18px;
+  --ink:#eaf1ff;            /* = --ink-1 前景白 */
+  --ink-2:#cfe2ff;          /* = --ink-2 淺藍描邊（原 #dbe7ff）*/
+  --ink-dim:#95aac5;        /* = --slate-400 次級字（原 #8ba0c6）*/
+  --ink-faint:#516587;      /* = --slate-700 三級字（原 #4d5d80）*/
+  /* ── 藍階梯（Z blue.css —— 要統一的那一層）──────────────────────── */
+  --blue-100:#c0e6fa;
+  --blue-300:#6fc8f6;
+  --blue-400:#3fb4f0;       /* ★ E 的 ANLB 藍 = 現場燈條色，不可改 */
+  --blue-500:#1d9af9;
+  --blue-600:#2f7bff;       /* ★ B 電光藍，不可改 */
+  --blue-700:#255cc9;
+  --cyan:var(--blue-300);   /* 舊變數名保留，值吸附階梯（原 #2fd8ff，ΔE 4.9）*/
+  --line-blue:120,170,255;  /* 藍描邊色相，同 C 區 --edge；alpha 走下方階梯 */
+  /* ── 工作面狀態色（Z semantic.css）—— 只給 #panel，展演畫面不吃 ──── */
+  --st-ok:#57C99B; --st-warn:#E0B36A; --st-err:#D96C6C; --st-idle:#6B7480;
+  --st-ok-bg:rgba(87,201,155,.14); --st-warn-bg:rgba(224,179,106,.14); --st-err-bg:rgba(217,108,108,.14);
+  --green:var(--st-ok); --amber:var(--st-warn); --red:var(--st-err);   /* 舊名保留 */
+  /* ── 白 alpha 十一級（Z core.css）──────────────────────────────── */
+  --a-hair:.06; --a-line:.10; --a-dim:.16; --a-line-2:.22; --a-line-3:.30;
+  --a-on-glass:.55; --a-text-3:.62; --a-veil:.72; --a-active:.85; --a-text-2:.90; --a-text-1:.95;
+  /* ── 字距三帶 · 行高 · 圓角 · 線寬 · 時長（Z core.css）· 緩動（motion.css）── */
+  --ls-wide:.30em; --ls-mid:.14em; --ls-body:.06em; --ls-num:.04em;
+  --lh-num:1; --lh-title:1.15; --lh-ui:1.3; --lh-body:1.7; --lh-note:1.72;
+  --r-2:2px; --r-6:6px; --r-13:13px; --r-16:16px; --r-pill:999px;
+  --w-hair:1px; --w-accent:2px;
+  --d-state:.25s; --d-panel:.3s;
+  --ease:cubic-bezier(.16,1,.3,1);
+  /* ── 訪客面字級階梯（cqw，相對舞台寬；同 C 區做法）────────────────── */
+  --t-1:1.2cqw; --t-2:1.4cqw; --t-3:1.6cqw; --t-4:1.9cqw; --t-5:2.4cqw;
+  /* ── 工作面字級階梯（px，#panel 不隨舞台縮）──────────────────────── */
+  --fs-11:11px; --fs-12:12px; --fs-13:13px; --fs-15:15px;
+  /* ── 字型（自帶，見 fonts/fonts.css）──────────────────────────── */
+  --font:"Inter","Chiron Hei HK","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Roboto Mono","Chiron Hei HK",monospace;
   --panel-w:400px;
-  --font:"Inter","Helvetica Neue",-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-  --mono:"SFMono-Regular",Consolas,"Roboto Mono",monospace;
 }
 *{box-sizing:border-box;}
 html,body{height:100%;}
 body{
-  margin:0;background:var(--bg-0);color:var(--ink);
-  font-family:var(--font);overflow:hidden;
+  margin:0;background:#000;color:var(--ink);
+  font-family:var(--font);font-weight:400;line-height:var(--lh-body);overflow:hidden;
   -webkit-font-smoothing:antialiased;
 }
+.tnum,[data-tnum]{font-variant-numeric:tabular-nums;}
+/* 減動偏好（E §9.3 必遵） */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
+}
 
-/* ================= 1. 影片輪播 ================= */
-.stagewrap{position:fixed;inset:0;background:#000;}
-.stagewrap video{
+/* ================= 1. 舞台（1:1，同 C 區窗景）=================
+   舞台邊長 S = min(100vw,100dvh) 置中黑底；container-type 讓子層的 cqw 相對舞台寬。
+   雙螢幕裁切：S = min(200vw,100dvh)，左半 / 右半只差 left 一個螢幕寬。
+   用 left/top 直接算位移、不用 transform —— 玻璃的祖先不得有 transform（Z glass.css）。*/
+.stage{
+  --S:min(100vw,100dvh);
+  position:absolute;width:var(--S);height:var(--S);
+  top:calc((100dvh - var(--S)) / 2);
+  left:calc((100vw - var(--S)) / 2);
+  container-type:inline-size;
+  overflow:hidden;background:#000;
+}
+:root[data-crop] .stage{
+  --S:min(200vw,100dvh);
+  left:calc((200vw - var(--S)) / 2);
+}
+:root[data-crop="right"] .stage{left:calc((200vw - var(--S)) / 2 - 100vw);}
+.stage video{
   position:absolute;inset:0;width:100%;height:100%;
   object-fit:cover;opacity:0;transition:opacity .45s ease;
   background:#000;
 }
-.stagewrap video.on{opacity:1;}
+.stage video.on{opacity:1;}
 .novideo{
   position:absolute;inset:0;display:grid;place-content:center;
-  gap:10px;text-align:center;color:var(--ink-faint);
-  font-size:13px;letter-spacing:.14em;
+  gap:1cqw;text-align:center;color:var(--ink-faint);
+  font-size:var(--t-2);letter-spacing:var(--ls-mid);line-height:var(--lh-ui);
   background:radial-gradient(70% 60% at 50% 45%, rgba(20,40,90,.35), #000 72%);
 }
-.novideo b{display:block;color:var(--ink-dim);font-size:16px;letter-spacing:.4em;}
+.novideo b{display:block;color:var(--ink);font-size:var(--t-5);font-weight:500;letter-spacing:var(--ls-mid);line-height:var(--lh-title);}
+.novideo .en{display:block;color:var(--ink-dim);font-size:var(--t-1);letter-spacing:var(--ls-wide);}
 .novideo.hide{display:none;}
 
-/* ================= 2. infographic 疊層 ================= */
+/* ================= 2. 資訊疊層（舞台內，尺寸全用 cqw）================= */
 .info{
-  position:fixed;left:clamp(18px,3.2vw,54px);top:50%;
-  transform:translateY(-50%);
-  width:clamp(240px,21.5vw,340px);
+  position:absolute;left:3cqw;top:0;bottom:0;
+  display:grid;align-content:center;      /* 垂直置中不用 transform */
+  width:30cqw;
   pointer-events:none;z-index:5;
-  text-shadow:0 2px 14px rgba(0,0,0,.75);
-  --glass:.42;          /* 玻璃底層濃度 0~1 */
-  --glass-blur:7px;     /* 底層模糊 */
+  --glass:.42;            /* 玻璃底層濃度 0~1 */
+  --glass-blur:.35cqw;    /* 底層模糊（1080 舞台 ≈ 4px，1920 ≈ 7px）*/
 }
-/* 深色玻璃底層：壓在資訊下方，影片仍可透出 */
-.info::before{
+.ibody{position:relative;text-shadow:0 .1cqw .7cqw rgba(0,0,0,.75);}
+/* 深色玻璃底層：壓在資訊下方，影片仍可透出（本頁唯一一層 backdrop-filter）*/
+.ibody::before{
   content:"";position:absolute;z-index:-1;
-  left:calc(-1 * clamp(18px,3.2vw,54px) - 40px);   /* 往左延伸到畫面邊緣外 */
+  left:-6cqw;             /* 往左延伸到舞台邊緣外 */
   right:-14%;
   top:-9%;bottom:-9%;
   background:
@@ -106,7 +170,6 @@ body{
     radial-gradient(120% 78% at 8% 50%, rgba(10,26,58,.30) 0%, transparent 70%);
   backdrop-filter:blur(var(--glass-blur)) saturate(112%) brightness(.86);
   -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(112%) brightness(.86);
-  /* 四周柔化，避免出現硬邊 */
   -webkit-mask-image:
     linear-gradient(to right, #000 0%, #000 52%, rgba(0,0,0,.55) 78%, transparent 100%),
     linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
@@ -117,145 +180,149 @@ body{
   mask-composite:intersect;
   pointer-events:none;
 }
-/* --- 分鏡配色（.info 上的 s1 / s2 / s3） --- */
-@property --a1{syntax:'<color>';inherits:true;initial-value:#2fd8ff;}
-@property --a2{syntax:'<color>';inherits:true;initial-value:#4dfb8f;}
-@property --acc{syntax:'<color>';inherits:true;initial-value:#3df08a;}
-.info{--a1:#2fd8ff;--a2:#4dfb8f;--acc:#3df08a;
+/* --- 分鏡配色：一律藍白，只走 blue.css 階梯，三個分鏡以明度區分（靜 · 亮 · 深）---
+   --a1 主色（線、眉標、標題英文）  --a2 漸層尾（長條末端、光暈）  --acc 眉標 / 環 / 趨勢數字 */
+@property --a1{syntax:'<color>';inherits:true;initial-value:#6fc8f6;}
+@property --a2{syntax:'<color>';inherits:true;initial-value:#1d9af9;}
+@property --acc{syntax:'<color>';inherits:true;initial-value:#6fc8f6;}
+.info{--a1:#6fc8f6;--a2:#1d9af9;--acc:#6fc8f6;
       transition:--a1 .9s ease, --a2 .9s ease, --acc .9s ease;}
-.info.s1{--a1:#2fd8ff;--a2:#4dfb8f;--acc:#3df08a;}  /* 分鏡一 · 偵測數據：青綠 */
-.info.s2{--a1:#ffc24a;--a2:#ff4d6a;--acc:#ff7a4a;}  /* 分鏡二 · 負壓防護：橘紅 */
-.info.s3{--a1:#3ce0d0;--a2:#4aa8ff;--acc:#45e0c8;}  /* 分鏡三 · 正壓守護／深層淨化：青藍 */
+.info.s1{--a1:#6fc8f6;--a2:#1d9af9;--acc:#6fc8f6;}  /* 分鏡一 · 偵測數據：靜 —— blue-300 / blue-500 */
+.info.s2{--a1:#c0e6fa;--a2:#2f7bff;--acc:#eaf1ff;}  /* 分鏡二 · 負壓防護：亮 —— blue-100 / blue-600，眉標提到前景白 --ink-1 */
+.info.s3{--a1:#3fb4f0;--a2:#255cc9;--acc:#3fb4f0;}  /* 分鏡三 · 正壓守護／深層淨化：深 —— blue-400 / blue-700 */
 
-/* --- 標頭：AQI 環 + 分鏡名 --- */
-.ihead{display:flex;align-items:center;gap:12px;margin-bottom:11px;}
-.ring{width:clamp(62px,5.2vw,78px);aspect-ratio:1;position:relative;flex:0 0 auto;}
+/* --- 標頭：AQI 環 + 分鏡（眉標(英) → 中文名 → 英文副標）--- */
+.ihead{display:flex;align-items:center;gap:1.2cqw;margin-bottom:1.2cqw;}
+.ring{width:7cqw;aspect-ratio:1;position:relative;flex:0 0 auto;}
 .ring svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible;}
-.ring .rv{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:1;}
-.ring .rv b{font-size:clamp(17px,1.6vw,22px);font-weight:600;font-variant-numeric:tabular-nums;}
-.ring .rv i{display:block;font-style:normal;margin-top:4px;font-size:8px;
-            letter-spacing:.14em;color:var(--acc);white-space:nowrap;}
+.ring .rv{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:var(--lh-num);}
+.ring .rv b{font-size:var(--t-5);font-weight:500;letter-spacing:var(--ls-num);font-variant-numeric:tabular-nums;}
+.ring .rv i{display:block;font-style:normal;margin-top:.3cqw;font-size:var(--t-1);
+            letter-spacing:var(--ls-wide);line-height:var(--lh-ui);color:var(--acc);}
 .hmeta{min-width:0;}
-.hmeta .eyebrow{font-size:8px;letter-spacing:.2em;color:var(--ink-faint);white-space:nowrap;}
-.hmeta .scene{margin-top:5px;font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--acc);}
-.hmeta .sname{margin-top:3px;font-size:clamp(12.5px,1.15vw,16px);font-weight:600;letter-spacing:.09em;}
+.hmeta .scene{font-size:var(--t-1);letter-spacing:var(--ls-wide);line-height:var(--lh-ui);color:var(--acc);white-space:nowrap;}
+.hmeta .sname{margin-top:.3cqw;font-size:var(--t-4);font-weight:500;letter-spacing:var(--ls-mid);line-height:var(--lh-title);color:var(--ink);}
+.hmeta .esub{margin-top:.3cqw;font-size:var(--t-1);letter-spacing:var(--ls-wide);line-height:var(--lh-ui);color:var(--ink-dim);white-space:nowrap;}
 
-/* --- 警示膠囊：漸層描邊、無實心背景 --- */
+/* --- 警示膠囊：漸層描邊、無實心背景（不再疊第二層 backdrop-filter）--- */
 .alert{
-  position:relative;border-radius:14px;
-  padding:11px 13px;margin-bottom:12px;
-  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  position:relative;border-radius:1.2cqw;
+  padding:1.1cqw 1.4cqw;margin-bottom:1.2cqw;
   background:rgba(4,8,18,.20);
-  transition:opacity .4s ease, transform .4s ease;
+  transition:opacity var(--d-state) var(--ease), transform var(--d-state) var(--ease);
 }
 .alert::before{
-  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:var(--w-hair);
   background:linear-gradient(118deg,var(--a1) 0%,var(--acc) 52%,var(--a2) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;
-  opacity:.92;pointer-events:none;
+  opacity:var(--a-text-2);pointer-events:none;
 }
-.alert.flash{animation:flash .5s ease;}
+.alert.flash{animation:flash .5s var(--ease);}
 @keyframes flash{0%{transform:scale(1)}35%{transform:scale(1.03)}100%{transform:scale(1)}}
 .alert .l1{
-  font-size:clamp(12.5px,1.1vw,16px);font-weight:600;
-  letter-spacing:.14em;text-align:center;line-height:1.35;
+  font-size:var(--t-3);font-weight:600;
+  letter-spacing:var(--ls-mid);text-align:center;line-height:var(--lh-ui);
 }
 .alert .l2{
-  margin-top:5px;font-size:clamp(11px,.95vw,13.5px);font-weight:500;
-  letter-spacing:.08em;text-align:center;color:#dbe7ff;opacity:.9;
+  margin-top:.3cqw;font-size:var(--t-2);font-weight:400;
+  letter-spacing:var(--ls-body);text-align:center;line-height:var(--lh-ui);
+  color:var(--ink-2);opacity:var(--a-text-2);
 }
 
 /* --- 六項數值 --- */
-.metrics{display:grid;gap:7px;}
-.m{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:baseline;}
-.m .mk{font-size:9.5px;letter-spacing:.16em;color:var(--ink-dim);}
+.metrics{display:grid;gap:.8cqw;}
+.m{display:grid;grid-template-columns:1fr auto;gap:.3cqw 1cqw;align-items:baseline;}
+.m .mk{font-size:var(--t-1);letter-spacing:.20em;line-height:var(--lh-ui);color:var(--ink-dim);}
 .m .mv{
-  font-size:clamp(11.5px,1.05vw,14px);font-weight:600;text-align:right;
-  font-variant-numeric:tabular-nums;white-space:nowrap;
+  font-size:var(--t-3);font-weight:500;letter-spacing:var(--ls-num);line-height:var(--lh-ui);
+  text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;
 }
-.m .mv i{font-style:normal;font-size:8px;font-weight:400;color:var(--ink-faint);margin-left:3px;letter-spacing:.04em;}
+.m .mv i{font-style:normal;font-size:var(--t-1);font-weight:400;color:var(--ink-faint);margin-left:.3cqw;letter-spacing:var(--ls-mid);}
 .m .mbar{
-  grid-column:1;position:relative;height:5px;border-radius:3px;
+  grid-column:1;position:relative;height:.45cqw;border-radius:var(--r-pill);
   background:
     repeating-linear-gradient(-38deg, rgba(150,200,255,.22) 0 1px, transparent 1px 6px),
-    rgba(255,255,255,.05);
+    rgba(255,255,255,var(--a-hair));
 }
 .m .fill{
-  position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;
+  position:absolute;left:0;top:0;bottom:0;width:0;border-radius:var(--r-pill);
   background:linear-gradient(90deg,var(--a1),var(--a2));
-  filter:drop-shadow(0 0 4px var(--a2));
-  transition:width .55s cubic-bezier(.4,0,.2,1);
+  filter:drop-shadow(0 0 .35cqw var(--a2));
+  transition:width .55s var(--ease);
 }
-.m .tick{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:#dbe7ff;opacity:.45;}
-.m .ms{grid-column:2;font-size:8.5px;letter-spacing:.1em;text-align:right;white-space:nowrap;}
-.sev0{color:#7fe8b0;} .sev1{color:#ffd36a;} .sev2{color:#ff9a4a;} .sev3{color:#ff5f6d;}
-.m.lv3 .mv{color:#ff8a94;} .m.lv2 .mv{color:#ffb07a;}
+.m .tick{position:absolute;top:-.25cqw;bottom:-.25cqw;width:var(--w-hair);background:var(--ink-2);opacity:.45;}
+.m .ms{grid-column:2;font-size:var(--t-1);letter-spacing:var(--ls-mid);line-height:var(--lh-ui);text-align:right;white-space:nowrap;}
+/* 資料分級：不用紅橘綠，用明度差（Z docs/05）—— 正常暗、偏高藍、超標白、重度白＋光暈 */
+.sev0{color:var(--ink-dim);} .sev1{color:var(--blue-300);} .sev2{color:var(--ink);} .sev3{color:#fff;font-weight:600;}
+.m.lv2 .mv{color:#fff;} .m.lv3 .mv{color:#fff;text-shadow:0 0 .6cqw var(--blue-300);}
 
 /* --- AQI 趨勢 --- */
-.spark{margin-top:11px;}
+.spark{margin-top:1.2cqw;}
 .spark .sl{
   display:flex;justify-content:space-between;align-items:baseline;
-  font-size:8px;letter-spacing:.18em;color:var(--ink-faint);margin-bottom:3px;
+  font-size:var(--t-1);letter-spacing:var(--ls-wide);line-height:var(--lh-ui);color:var(--ink-faint);margin-bottom:.3cqw;
 }
-.spark .sl b{font-family:var(--mono);font-size:9px;color:var(--acc);font-weight:500;}
-.spark svg{width:100%;height:34px;display:block;}
+.spark .sl b{font-family:var(--mono);font-size:var(--t-1);color:var(--acc);font-weight:500;letter-spacing:var(--ls-num);font-variant-numeric:tabular-nums;}
+.spark svg{width:100%;height:3.4cqw;display:block;}
 
-/* --- 頁尾標題 --- */
-.title{display:flex;align-items:center;gap:8px;margin-top:9px;}
-.title span{
-  font-size:clamp(13px,1.25vw,18px);font-weight:400;letter-spacing:.08em;
-  color:var(--a1);opacity:.92;white-space:nowrap;
-}
-.title .rules{flex:1;display:grid;gap:3px;}
-.title .rules i{display:block;height:1px;background:var(--a1);opacity:.55;}
+/* --- 頁尾：展區名（中文在前，英文眉標在後）--- */
+.title{display:flex;align-items:center;gap:1.2cqw;margin-top:1.2cqw;}
+.title .tt{display:grid;gap:.2cqw;}
+.title .tt span{font-size:var(--t-3);font-weight:400;letter-spacing:var(--ls-mid);line-height:var(--lh-ui);color:var(--ink);white-space:nowrap;}
+.title .tt .en{font-style:normal;font-size:var(--t-1);letter-spacing:var(--ls-wide);line-height:var(--lh-ui);color:var(--a1);white-space:nowrap;}
+.title .rules{flex:1;display:grid;gap:.3cqw;}
+.title .rules i{display:block;height:var(--w-hair);background:var(--a1);opacity:.55;}
 .title .rules i:nth-child(2){width:78%;}
 .title .rules i:nth-child(3){width:52%;}
 
-/* ================= 3. 隱藏側邊介面 ================= */
+/* ================= 3. 隱藏側邊工作面（固定在視口，不在舞台）================= */
 #panel{
-  position:fixed;top:0;right:0;height:100%;width:var(--panel-w);
+  position:fixed;top:0;right:-100vw;height:100%;width:var(--panel-w);
   max-width:92vw;z-index:40;
-  transform:translateX(102%);transition:transform .34s cubic-bezier(.4,0,.2,1);
+  transition:right var(--d-panel) var(--ease);   /* 用 right 位移，不用 transform（Z glass.css）*/
   background:linear-gradient(200deg,rgba(10,18,42,.94),rgba(3,6,16,.96));
   backdrop-filter:blur(22px) saturate(140%);
   -webkit-backdrop-filter:blur(22px) saturate(140%);
-  border-left:1px solid rgba(120,170,255,.18);
+  border-left:var(--w-hair) solid rgba(var(--line-blue),var(--a-dim));
   box-shadow:-30px 0 80px rgba(0,0,0,.6);
   display:flex;flex-direction:column;
+  font-size:var(--fs-12);line-height:var(--lh-ui);
 }
-#panel.open{transform:translateX(0);}
+#panel.open{right:0;}
 .ph{
-  padding:16px 18px 12px;border-bottom:1px solid rgba(120,170,255,.13);
-  display:flex;align-items:baseline;gap:10px;flex:0 0 auto;
+  padding:16px 18px 12px;border-bottom:var(--w-hair) solid rgba(var(--line-blue),var(--a-dim));
+  display:flex;align-items:flex-end;gap:10px;flex:0 0 auto;
 }
-.ph h1{margin:0;font-size:14px;letter-spacing:.22em;font-weight:600;}
-.ph em{font-style:normal;font-size:10px;letter-spacing:.16em;color:var(--ink-faint);margin-left:auto;}
+.ph .eyebrow{font-size:var(--fs-11);letter-spacing:var(--ls-wide);line-height:var(--lh-ui);color:var(--ink-faint);}
+.ph h1{margin:2px 0 0;font-size:var(--fs-15);letter-spacing:var(--ls-mid);font-weight:500;line-height:var(--lh-ui);}
+.ph em{font-style:normal;font-size:var(--fs-11);letter-spacing:var(--ls-mid);line-height:var(--lh-ui);color:var(--ink-faint);margin-left:auto;}
 .pb{flex:1;overflow-y:auto;padding:14px 18px 26px;}
 .pb::-webkit-scrollbar{width:8px;}
-.pb::-webkit-scrollbar-thumb{background:rgba(120,170,255,.2);border-radius:4px;}
+.pb::-webkit-scrollbar-thumb{background:rgba(var(--line-blue),var(--a-line-2));border-radius:var(--r-pill);}
 
 .sec{margin-bottom:22px;}
 .sec > h2{
-  margin:0 0 9px;font-size:10px;font-weight:600;letter-spacing:.22em;
-  color:var(--ink-faint);text-transform:uppercase;
+  margin:0 0 9px;font-size:var(--fs-11);font-weight:500;letter-spacing:var(--ls-wide);line-height:var(--lh-ui);
+  color:var(--ink-faint);                 /* 英文靠內容大寫，不用 text-transform（E §10.1）*/
   display:flex;align-items:center;gap:8px;
 }
-.sec > h2::after{content:"";flex:1;height:1px;background:rgba(120,170,255,.14);}
+.sec > h2::after{content:"";flex:1;height:var(--w-hair);background:rgba(var(--line-blue),var(--a-dim));}
 
 /* --- 上傳槽 --- */
 .slot{
-  border:1px dashed rgba(120,170,255,.3);border-radius:12px;
-  padding:10px 12px;margin-bottom:9px;transition:.2s;
-  background:rgba(255,255,255,.022);
+  border:var(--w-hair) dashed rgba(var(--line-blue),var(--a-line-3));border-radius:var(--r-16);
+  padding:10px 12px;margin-bottom:9px;
+  transition:border-color var(--d-state) var(--ease), background var(--d-state) var(--ease);
+  background:rgba(255,255,255,.03);
 }
-.slot.drag{border-color:var(--cyan);background:rgba(47,216,255,.09);}
-.slot.live{border-style:solid;border-color:rgba(61,240,138,.42);}
-.slot.cur{box-shadow:0 0 0 1px rgba(61,240,138,.5),0 0 22px rgba(61,240,138,.16);}
+.slot.drag{border-color:var(--cyan);background:rgba(111,200,246,.10);}
+.slot.live{border-style:solid;border-color:rgba(87,201,155,.45);}
+.slot.cur{box-shadow:0 0 0 1px rgba(87,201,155,.5),0 0 22px rgba(87,201,155,.16);}
 .slot .top{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
-.slot .tag{font-size:10px;letter-spacing:.18em;font-weight:600;color:var(--cyan);}
+.slot .tag{font-size:var(--fs-11);letter-spacing:var(--ls-wide);font-weight:500;color:var(--cyan);}
 .slot .st{
-  margin-left:auto;font-size:9.5px;letter-spacing:.1em;color:var(--ink-faint);
+  margin-left:auto;font-size:var(--fs-11);letter-spacing:var(--ls-body);color:var(--ink-faint);
   font-family:var(--mono);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:190px;
 }
@@ -263,173 +330,200 @@ body{
 .slot input[type=text]{flex:1;min-width:0;}
 label.file{
   display:inline-flex;align-items:center;justify-content:center;
-  padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;
-  font-size:10.5px;letter-spacing:.1em;
-  border:1px solid rgba(120,170,255,.28);color:var(--ink-dim);
+  padding:6px 10px;border-radius:var(--r-6);cursor:pointer;white-space:nowrap;
+  font-size:var(--fs-12);letter-spacing:var(--ls-body);line-height:var(--lh-ui);
+  border:var(--w-hair) solid rgba(var(--line-blue),var(--a-line-3));color:var(--ink-dim);
   background:rgba(255,255,255,.03);
 }
 label.file:hover{border-color:var(--cyan);color:var(--ink);}
 label.file input{display:none;}
 
 input[type=text],input[type=number],select{
-  background:rgba(0,0,0,.4);border:1px solid rgba(120,170,255,.22);
-  border-radius:8px;color:var(--ink);padding:5px 8px;
-  font-family:var(--mono);font-size:10.5px;outline:none;width:100%;
+  background:rgba(0,0,0,.4);border:var(--w-hair) solid rgba(var(--line-blue),var(--a-line-2));
+  border-radius:var(--r-6);color:var(--ink);padding:6px 8px;
+  font-family:var(--mono);font-size:var(--fs-12);line-height:var(--lh-ui);outline:none;width:100%;
 }
 input:focus,select:focus{border-color:var(--cyan);}
 input[type=range]{width:100%;accent-color:var(--cyan);background:none;border:0;padding:0;height:16px;}
 button{
-  background:rgba(255,255,255,.045);border:1px solid rgba(120,170,255,.26);
-  color:var(--ink-dim);border-radius:8px;padding:5px 11px;cursor:pointer;
-  font-family:var(--font);font-size:10.5px;letter-spacing:.1em;transition:.16s;
+  background:rgba(255,255,255,.045);border:var(--w-hair) solid rgba(var(--line-blue),var(--a-line-2));
+  color:var(--ink-dim);border-radius:var(--r-6);padding:6px 11px;cursor:pointer;
+  font-family:var(--font);font-size:var(--fs-12);letter-spacing:var(--ls-body);line-height:var(--lh-ui);
+  transition:border-color var(--d-state) var(--ease), color var(--d-state) var(--ease), background var(--d-state) var(--ease);
 }
-button:hover{border-color:var(--cyan);color:var(--ink);background:rgba(47,216,255,.1);}
-button.go{border-color:rgba(61,240,138,.45);color:#bff8d8;}
-button.go:hover{background:rgba(61,240,138,.14);}
+button:hover{border-color:var(--cyan);color:var(--ink);background:rgba(111,200,246,.10);}
+button.go{border-color:rgba(87,201,155,.45);color:var(--st-ok);}
+button.go:hover{background:var(--st-ok-bg);}
 
 /* --- trigger 通道鏈 --- */
 .chain{display:grid;gap:0;}
 .node{
   display:flex;align-items:center;gap:9px;padding:6px 10px;
-  border-radius:9px;background:rgba(255,255,255,.028);
-  font-size:10.5px;letter-spacing:.12em;color:var(--ink-dim);
+  border-radius:var(--r-6);background:rgba(255,255,255,.028);
+  font-size:var(--fs-12);letter-spacing:var(--ls-mid);line-height:var(--lh-ui);color:var(--ink-dim);
 }
-.node.act{color:#bff8d8;background:rgba(61,240,138,.1);}
-.node .n{font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);margin-left:auto;}
+.node.act{color:var(--st-ok);background:var(--st-ok-bg);}
+.node .n{font-family:var(--mono);font-size:var(--fs-11);letter-spacing:var(--ls-body);color:var(--ink-faint);margin-left:auto;}
+.node .sub{font-size:var(--fs-11);letter-spacing:var(--ls-mid);}
 .jn{
   display:flex;align-items:center;gap:8px;
   margin:4px 0 4px 14px;padding:7px 10px;
-  border-left:2px solid rgba(120,170,255,.25);
-  border-radius:0 9px 9px 0;background:rgba(120,170,255,.05);
-  transition:.18s;
+  border-left:var(--w-accent) solid rgba(var(--line-blue),var(--a-line-2));
+  border-radius:0 var(--r-6) var(--r-6) 0;background:rgba(var(--line-blue),var(--a-hair));
+  transition:border-color var(--d-state) var(--ease), background var(--d-state) var(--ease);
 }
-.jn.hit{border-left-color:var(--green);background:rgba(61,240,138,.13);}
-.jn .id{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:.08em;}
+.jn.hit{border-left-color:var(--st-ok);background:var(--st-ok-bg);}
+.jn .id{font-family:var(--mono);font-size:var(--fs-11);color:var(--cyan);letter-spacing:var(--ls-body);}
 .jn .io{display:flex;gap:4px;margin-left:auto;align-items:center;}
 .lamp{
-  display:block;width:7px;height:7px;border-radius:50%;
-  background:rgba(120,170,255,.22);
-  box-shadow:0 0 0 1px rgba(120,170,255,.2) inset;transition:.15s;
+  display:block;width:8px;height:8px;border-radius:50%;
+  background:rgba(var(--line-blue),var(--a-line-2));
+  box-shadow:0 0 0 1px rgba(var(--line-blue),var(--a-line-2)) inset;
+  transition:background var(--d-state) var(--ease), box-shadow var(--d-state) var(--ease);
 }
 .lamp.out.on{background:var(--cyan);box-shadow:0 0 9px var(--cyan);}
-.lamp.in.on{background:var(--green);box-shadow:0 0 9px var(--green);}
-.jn button{padding:3px 7px;font-size:9.5px;}
-.jn input[type=text]{width:92px;flex:0 0 auto;font-size:9.5px;padding:3px 6px;}
+.lamp.in.on{background:var(--st-ok);box-shadow:0 0 9px var(--st-ok);}
+.jn button{padding:3px 7px;font-size:var(--fs-11);}
+.jn input[type=text]{width:92px;flex:0 0 auto;font-size:var(--fs-11);padding:3px 6px;}
 
-/* --- 連線 --- */
+/* --- 連線（狀態點 8px，E 附錄 B-20）--- */
 .field{display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center;margin-bottom:7px;}
-.field span{font-size:9.5px;letter-spacing:.14em;color:var(--ink-faint);}
+.field span{font-size:var(--fs-11);letter-spacing:var(--ls-mid);line-height:var(--lh-ui);color:var(--ink-faint);}
 .conn{display:flex;align-items:center;gap:8px;margin-top:8px;}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 8px rgba(255,77,106,.6);flex:0 0 auto;}
-.dot.ok{background:var(--green);box-shadow:0 0 10px rgba(61,240,138,.7);}
-.dot.wait{background:var(--amber);box-shadow:0 0 10px rgba(255,176,58,.6);}
-.conn .txt{font-size:9.5px;font-family:var(--mono);color:var(--ink-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.chk{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--ink-dim);letter-spacing:.1em;margin-top:7px;cursor:pointer;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--st-err);box-shadow:0 0 8px rgba(217,108,108,.6);flex:0 0 auto;}
+.dot.ok{background:var(--st-ok);box-shadow:0 0 10px rgba(87,201,155,.7);}
+.dot.wait{background:var(--st-warn);box-shadow:0 0 10px rgba(224,179,106,.6);}
+.conn .txt{font-size:var(--fs-11);font-family:var(--mono);color:var(--ink-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chk{display:flex;align-items:center;gap:7px;font-size:var(--fs-12);color:var(--ink-dim);letter-spacing:var(--ls-body);line-height:var(--lh-ui);margin-top:7px;cursor:pointer;}
 .chk input{accent-color:var(--cyan);}
 
 /* --- 日誌 --- */
 #log{
-  height:150px;overflow-y:auto;border-radius:10px;
-  background:rgba(0,0,0,.45);border:1px solid rgba(120,170,255,.14);
-  padding:8px 10px;font-family:var(--mono);font-size:9.5px;line-height:1.65;
+  height:150px;overflow-y:auto;border-radius:var(--r-6);
+  background:rgba(0,0,0,.45);border:var(--w-hair) solid rgba(var(--line-blue),var(--a-dim));
+  padding:8px 10px;font-family:var(--mono);font-size:var(--fs-11);line-height:var(--lh-note);
 }
 #log::-webkit-scrollbar{width:6px;}
-#log::-webkit-scrollbar-thumb{background:rgba(120,170,255,.2);border-radius:3px;}
+#log::-webkit-scrollbar-thumb{background:rgba(var(--line-blue),var(--a-line-2));border-radius:var(--r-pill);}
 #log div{white-space:pre-wrap;word-break:break-all;color:var(--ink-faint);}
 #log .o{color:var(--cyan);}
-#log .i{color:var(--green);}
-#log .e{color:var(--red);}
+#log .i{color:var(--st-ok);}
+#log .e{color:var(--st-err);}
 
-.hint{font-size:9.5px;color:var(--ink-faint);line-height:1.8;letter-spacing:.05em;}
+.hint{font-size:var(--fs-11);color:var(--ink-faint);line-height:var(--lh-note);letter-spacing:var(--ls-body);}
+.hint .k{color:var(--cyan);}
+.hint .ok{color:var(--st-ok);}
 kbd{
-  font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:4px;
-  border:1px solid rgba(120,170,255,.3);color:var(--ink-dim);
+  font-family:var(--mono);font-size:var(--fs-11);padding:1px 5px;border-radius:var(--r-2);
+  border:var(--w-hair) solid rgba(var(--line-blue),var(--a-line-3));color:var(--ink-dim);
 }
 .fhint{
-  position:fixed;right:16px;bottom:14px;z-index:6;
-  font-size:9.5px;letter-spacing:.18em;color:rgba(180,205,255,.34);
-  pointer-events:none;transition:opacity .6s;
+  position:fixed;right:18px;bottom:16px;z-index:6;
+  font-size:var(--fs-13);letter-spacing:var(--ls-wide);line-height:var(--lh-ui);color:rgba(180,205,255,.30);
+  pointer-events:none;transition:opacity .6s var(--ease);
 }
 .fhint.gone{opacity:0;}
 </style>
 </head>
 <body>
 
-<!-- ============ 1. 影片輪播 ============ -->
-<div class="stagewrap" id="stagewrap">
+<!-- ============ 1. 舞台（1:1）+ 2. 資訊疊層 ============ -->
+<div class="stage" id="stage">
   <video id="v0" playsinline muted></video>
   <video id="v1" playsinline muted></video>
   <video id="v2" playsinline muted></video>
   <div class="novideo" id="novideo">
-    <b>D W E B</b>
+    <b>展區 D · 居家風險劇場</b>
+    <span class="en">ZONE D · HOME RISK THEATER</span>
     尚未載入影片 · 按 F 開啟側邊介面上傳三段影片
   </div>
-</div>
 
-<!-- ============ 2. infographic 疊層 ============ -->
-<div class="info s1" id="info">
+  <div class="info s1" id="info">
+   <div class="ibody">
 
-  <!-- AQI 環 + 分鏡標頭 -->
-  <div class="ihead">
-    <div class="ring">
-      <svg viewBox="0 0 68 68">
-        <circle cx="34" cy="34" r="29" fill="none" stroke="rgba(200,225,255,.12)" stroke-width="4"/>
-        <circle id="aqiArc" cx="34" cy="34" r="29" fill="none" stroke-width="4" stroke-linecap="round"
-                stroke-dasharray="182.2" stroke-dashoffset="182.2"
-                style="stroke:var(--acc);transition:stroke-dashoffset .7s ease"/>
+    <!-- AQI 環 + 分鏡標頭 -->
+    <div class="ihead">
+      <div class="ring">
+        <svg viewBox="0 0 68 68">
+          <circle cx="34" cy="34" r="29" fill="none" stroke="rgba(200,225,255,.10)" stroke-width="4"/>
+          <circle id="aqiArc" cx="34" cy="34" r="29" fill="none" stroke-width="4" stroke-linecap="round"
+                  stroke-dasharray="182.2" stroke-dashoffset="182.2"
+                  style="stroke:var(--acc);transition:stroke-dashoffset .7s ease"/>
+        </svg>
+        <div class="rv"><b id="aqiV">—</b><i>AQI</i></div>
+      </div>
+      <div class="hmeta">
+        <div class="scene" id="sceneTag">01 · DETECTION</div>
+        <div class="sname" id="sceneName">偵測數據啟動</div>
+        <div class="esub" id="sceneEn">AIR QUALITY MONITORING</div>
+      </div>
+    </div>
+
+    <!-- 警示膠囊 -->
+    <div class="alert" id="alert">
+      <div class="l1" id="al1">偵測數據啟動</div>
+      <div class="l2" id="al2">AI 即時監測空氣品質</div>
+    </div>
+
+    <!-- 六項指標 -->
+    <div class="metrics" id="metrics"></div>
+
+    <!-- AQI 歷史趨勢曲線 -->
+    <div class="spark">
+      <div class="sl"><span>AQI 趨勢</span><b><span id="sparkNow">—</span> · <span id="aqiC">—</span></b></div>
+      <svg viewBox="0 0 260 40" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   style="stop-color:var(--a1)" stop-opacity=".34"/>
+            <stop offset="100%" style="stop-color:var(--a1)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <polygon  id="sparkFill" fill="url(#sparkGrad)" points=""/>
+        <polyline id="sparkLine" fill="none" stroke-width="1.6" stroke-linejoin="round"
+                  stroke-linecap="round" style="stroke:var(--a1)" points=""/>
       </svg>
-      <div class="rv"><b id="aqiV">—</b><i id="aqiC">AQI</i></div>
     </div>
-    <div class="hmeta">
-      <div class="eyebrow">居家空氣品質 · LIVE MONITORING</div>
-      <div class="scene" id="sceneTag">SCENE 01</div>
-      <div class="sname" id="sceneName">偵測數據啟動</div>
+
+    <div class="title">
+      <div class="tt"><span id="dataTitle">展區 D · 居家風險劇場</span><i class="en">HOME RISK THEATER</i></div>
+      <div class="rules"><i></i><i></i><i></i></div>
     </div>
-  </div>
 
-  <!-- 警示膠囊 -->
-  <div class="alert" id="alert">
-    <div class="l1" id="al1">偵測數據啟動</div>
-    <div class="l2" id="al2">AI 即時監測空氣品質</div>
-  </div>
-
-  <!-- 六項指標 -->
-  <div class="metrics" id="metrics"></div>
-
-  <!-- AQI 歷史趨勢曲線 -->
-  <div class="spark">
-    <div class="sl"><span>AQI 趨勢曲線</span><b id="sparkNow">—</b></div>
-    <svg viewBox="0 0 260 40" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   style="stop-color:var(--a1)" stop-opacity=".34"/>
-          <stop offset="100%" style="stop-color:var(--a1)" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <polygon  id="sparkFill" fill="url(#sparkGrad)" points=""/>
-      <polyline id="sparkLine" fill="none" stroke-width="1.6" stroke-linejoin="round"
-                stroke-linecap="round" style="stroke:var(--a1)" points=""/>
-    </svg>
-  </div>
-
-  <div class="title">
-    <span id="dataTitle">AIR DATA · D</span>
-    <div class="rules"><i></i><i></i><i></i></div>
+   </div>
   </div>
 </div>
 
-<div class="fhint" id="fhint">PRESS <b>F</b></div>
+<div class="fhint" id="fhint">按 <b>F</b> 開啟控制面板 · PRESS F</div>
 
-<!-- ============ 3. 隱藏側邊介面 ============ -->
+<!-- ============ 3. 隱藏側邊工作面 ============ -->
 <aside id="panel" aria-hidden="true">
   <div class="ph">
-    <h1>D · CONTROL</h1>
+    <div>
+      <div class="eyebrow">ZONE D · CONTROL</div>
+      <h1>寶舖 D 區・控制</h1>
+    </div>
     <em>F 收合</em>
   </div>
   <div class="pb">
 
     <section class="sec">
-      <h2>影片來源 · 三階段</h2>
+      <h2>影片來源 · 單支影片</h2>
+      <div class="slot film" id="filmSlot">
+        <div class="top"><div class="tag">一支影片 · 三個分鏡時間點</div><div class="st" id="filmSt">未載入</div></div>
+        <div class="row">
+          <label class="file">選擇<input type="file" accept="video/*" id="filmFile"></label>
+          <input type="text" id="filmPath" placeholder="或路徑 / URL：film.mp4">
+          <button id="filmClr">✕</button>
+        </div>
+        <div class="field" style="margin-top:8px;"><span>02 起（秒）</span><input type="text" id="cue2" placeholder="留空 = 1/3 處"></div>
+        <div class="field"><span>03 起（秒）</span><input type="text" id="cue3" placeholder="留空 = 2/3 處"></div>
+        <div class="hint">
+          一支影片依時間點切三個分鏡；到時間點時切疊層並送出該銜接點 trigger，片尾回到 01。
+          網址參數 <span class="k">?film=film.mp4&amp;cues=10,20</span>；根目錄有 <span class="k">film.mp4</span> 會自動載入。
+        </div>
+      </div>
+
+      <h2 style="margin-top:16px;">影片來源 · 三段</h2>
       <div id="slots"></div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
         <button class="go" id="btnPlay">▶ 播放</button>
@@ -452,11 +546,27 @@ kbd{
     </section>
 
     <section class="sec">
-      <h2>Trigger 通道 · 銜接處</h2>
+      <h2>舞台 · 雙螢幕</h2>
+      <div class="field">
+        <span>顯示</span>
+        <select id="cropSel">
+          <option value="">單機 1:1（整個舞台）</option>
+          <option value="left">雙螢幕 · 左半（L）</option>
+          <option value="right">雙螢幕 · 右半（R）</option>
+        </select>
+      </div>
+      <div class="hint">
+        同 C 區窗景：兩台直式電視各開同一網址，各看完整畫布的一半，接縫自然銜接。
+        開機即定用網址參數 <span class="k">?side=left</span> · <span class="k">?side=right</span>。
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>TRIGGER 通道 · 銜接處</h2>
       <div class="chain" id="chain"></div>
       <div class="hint" style="margin-top:8px;">
-        每段影片結束時，該銜接點會 <span style="color:var(--cyan)">送出</span> trigger；
-        收到外部訊號時 <span style="color:var(--green)">亮綠燈</span> 並切段。
+        每段影片結束時，該銜接點會 <span class="k">送出</span> trigger；
+        收到外部訊號時 <span class="ok">亮綠燈</span> 並切段。
       </div>
     </section>
 
@@ -479,8 +589,8 @@ kbd{
         <button id="btnHttp">啟用</button>
       </div>
       <div class="hint" style="margin-top:6px;">
-        也接受網址參數：<span style="color:var(--cyan)">?trigger=next</span> ·
-        <span style="color:var(--cyan)">#goto=2</span>
+        也接受網址參數：<span class="k">?trigger=next</span> ·
+        <span class="k">#goto=2</span>
       </div>
     </section>
 
@@ -494,26 +604,25 @@ kbd{
     </section>
 
     <section class="sec">
-      <h2>Infographic 疊層</h2>
+      <h2>資訊疊層 · INFOGRAPHIC</h2>
       <label class="chk"><input type="checkbox" id="ovShow" checked> 顯示疊層</label>
       <label class="chk"><input type="checkbox" id="ovSim" checked> 模擬數據自動跑</label>
       <div class="field" style="margin-top:8px;">
         <span>分鏡</span>
         <select id="ovScene">
           <option value="auto">跟隨影片段落（自動）</option>
-          <option value="1">SCENE 01 · 偵測數據啟動</option>
-          <option value="2">SCENE 02 · 負壓防護</option>
-          <option value="3">SCENE 03 · 正壓守護 / 深層淨化</option>
+          <option value="1">01 · 偵測數據啟動</option>
+          <option value="2">02 · 負壓防護</option>
+          <option value="3">03 · 正壓守護 · 深層淨化</option>
         </select>
       </div>
       <div class="field"><span>單段秒數</span><input type="number" id="ovDur" value="14" min="2" step="1" title="影片無長度資訊時，分鏡進度所用的秒數"></div>
       <div class="field"><span>更新 ms</span><input type="number" id="ovMs" value="220" min="60" step="20"></div>
       <div class="field"><span>玻璃濃度</span><input type="range" id="ovGlass" min="0" max="1" step="0.02" value="0.42"></div>
-      <div class="field"><span>玻璃模糊</span><input type="range" id="ovBlur" min="0" max="24" step="1" value="7"></div>
+      <div class="field"><span>玻璃模糊</span><input type="range" id="ovBlur" min="0" max="24" step="1" value="7" title="以 1920 舞台換算的 px；實際用 cqw 隨舞台縮"></div>
       <div class="hint" style="margin-top:6px;">
-        依分鏡腳本內插：正常 → 飆升 → 淨化；顏色 <span style="color:#3df08a">青綠</span> ·
-        <span style="color:#ff7a4a">橘紅</span> · <span style="color:#45e0c8">青藍</span> 隨分鏡切換。<br>
-        關掉模擬後只吃外部 <span style="color:var(--cyan)">{cmd:'data', co2:700, pm25:200 …}</span>。
+        依分鏡腳本內插：正常 → 飆升 → 淨化；配色一律藍白，三個分鏡以明度區分（靜 · 亮 · 深），超標用白階提亮。<br>
+        關掉模擬後只吃外部 <span class="k">{cmd:'data', co2:700, pm25:200 …}</span>。
       </div>
     </section>
 
@@ -522,7 +631,8 @@ kbd{
       <div class="hint">
         <kbd>F</kbd> 開合介面　<kbd>Space</kbd> 播放/暫停<br>
         <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 跳段　<kbd>N</kbd> 下一段　<kbd>T</kbd> 手動送 trigger<br>
-        <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> 只切分鏡配色（不動影片）　<kbd>O</kbd> 疊層開關
+        <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> 只切分鏡配色（不動影片）　<kbd>O</kbd> 疊層開關<br>
+        <kbd>L</kbd><kbd>R</kbd> 雙螢幕只看左半 / 右半（再按一次還原）
       </div>
     </section>
 
@@ -559,16 +669,19 @@ function log(msg, kind){
 
 /* ========== 2. 影片輪播 ========== */
 const novideo = document.getElementById('novideo');
-function hasAny(){ return S.srcs.some(Boolean); }
+function hasAny(){ return filmActive() || S.srcs.some(Boolean); }
 function nextIdx(from){
+  if(filmActive()) return (from+1)%N;
   for(let k=1;k<=N;k++){ const i=(from+k)%N; if(S.srcs[i]) return i; }
   return S.srcs[from] ? from : -1;
 }
 function prevIdx(from){
+  if(filmActive()) return (from-1+N)%N;
   for(let k=1;k<=N;k++){ const i=(from-k+N*2)%N; if(S.srcs[i]) return i; }
   return S.srcs[from] ? from : -1;
 }
 function setSource(i, url, name){
+  if(url && filmActive()) setFilm(null,'');        // 三段模式接手，單支影片讓位
   const old = S.srcs[i];
   if(old && old.indexOf('blob:')===0) URL.revokeObjectURL(old);
   S.srcs[i]=url; S.names[i]=name||'';
@@ -579,8 +692,13 @@ function setSource(i, url, name){
   if(url && (i===S.cur || !hasCurrent())) show(i,false);
   log('stage '+(i+1)+' 來源 = '+(name||url||'（清除）'));
 }
-function hasCurrent(){ return !!S.srcs[S.cur]; }
+function hasCurrent(){ return filmActive() || !!S.srcs[S.cur]; }
 function show(i, emit){
+  if(filmActive()){                                   // 單支影片：跳到該分鏡起點
+    if(i<0 || i>=N) return;
+    const c=filmCues(); try{ filmV.currentTime=c[i]+0.01; }catch(e){}
+    filmV.play().catch(()=>{}); return;
+  }
   if(i<0 || !S.srcs[i]) return;
   const prev = S.cur;
   S.cur = i;
@@ -600,6 +718,12 @@ function show(i, emit){
   if(emit!==false && prev!==i) fire(prev, i, 'stage_start');
 }
 function onEnded(i){
+  if(filmActive()){                                   // 單支影片片尾：T3 → 回 01
+    if(i!==0) return;
+    fire(N-1, 0, 'stage_end');
+    if(S.mode==='wait'){ log('T3 等待外部 trigger…'); setChainWait(N-1,true); return; }
+    try{ filmV.currentTime=0; }catch(e){} filmV.play().catch(()=>{}); return;
+  }
   if(i!==S.cur) return;
   const nx = nextIdx(i);
   fire(i, nx, 'stage_end');
@@ -611,6 +735,75 @@ vids.forEach((v,i)=>{
   v.addEventListener('ended',()=>onEnded(i));
   v.addEventListener('error',()=>{ if(S.srcs[i]) log('stage '+(i+1)+' 載入失敗','e'); });
 });
+
+/* ========== 2b. 單支影片模式：一支影片 · 三個分鏡時間點 ==========
+   分鏡 01 從 0 秒起，02 / 03 的起點由 cue 設定（留空 = 三等分）。
+   到時間點時：切疊層分鏡、送出該銜接點 trigger（同三段模式的 stage_end）。
+   片尾回到 01（mode=wait 時停住等外部 trigger）。 */
+const F = { src:null, name:'', cues:[null,null] };   // cues = 分鏡 02 / 03 起始秒
+const filmV = vids[0];
+let filmChap = -1;
+function filmActive(){ return !!F.src; }
+function filmCues(){
+  const d = (filmV.duration && isFinite(filmV.duration)) ? filmV.duration : 0;
+  if(!d && (F.cues[0]==null || F.cues[1]==null)) return [0, Infinity, Infinity];   // metadata 未到：一律當作分鏡 01
+  const c2 = F.cues[0]!=null ? F.cues[0] : d/3, c3 = F.cues[1]!=null ? F.cues[1] : d*2/3;
+  return [0, c2, c3];
+}
+function filmChapter(t){ const c=filmCues(); return t>=c[2] ? 2 : t>=c[1] ? 1 : 0; }
+function setFilm(url, name){
+  if(F.src && F.src.indexOf('blob:')===0) URL.revokeObjectURL(F.src);
+  F.src=url; F.name=name||''; filmChap=-1;
+  if(url){
+    for(let i=0;i<N;i++){ S.srcs[i]=null; S.names[i]=''; }          // 三段模式讓位
+    vids.forEach((v,k)=>{ if(k){ v.removeAttribute('src'); try{v.load();}catch(e){} } });
+    S.cur=0;
+    filmV.src=url; filmV.load(); filmV.loop=(S.mode!=='wait'); filmV.muted=S.muted;
+    vids.forEach((v,k)=>v.classList.toggle('on',k===0));
+    filmV.play().catch(()=>{});
+  } else {
+    filmV.removeAttribute('src'); try{filmV.load();}catch(e){} filmV.classList.remove('on');
+  }
+  novideo.classList.toggle('hide', hasAny());
+  renderSlots(); renderChain(); renderFilm();
+  log('單支影片 = '+(name||url||'（清除）'));
+}
+filmV.addEventListener('timeupdate', ()=>{
+  if(!filmActive() || !(filmV.duration>0)) return;
+  const ch=filmChapter(filmV.currentTime);
+  if(ch===filmChap) return;
+  const prev=filmChap; filmChap=ch; S.cur=ch;
+  if(prev>=0) fire(prev, ch, ch===(prev+1)%N ? 'stage_end' : 'stage_start');
+  try{ if(document.getElementById('ovScene').value==='auto') setScene(ch,false); }catch(e){}
+  renderChain();
+});
+filmV.addEventListener('loadedmetadata', ()=>{
+  if(!filmActive()) return;
+  filmChap=-1;
+  filmV.play().catch(()=>log('瀏覽器擋下自動播放，按任一鍵或點一下畫面開始','e'));
+});
+function filmKick(){ if(filmActive() && filmV.paused) filmV.play().catch(()=>{}); }
+document.addEventListener('pointerdown', filmKick);
+const filmSlot=document.getElementById('filmSlot');
+function renderFilm(){
+  filmSlot.classList.toggle('live', filmActive());
+  filmSlot.classList.toggle('cur', filmActive());
+  document.getElementById('filmSt').textContent = filmActive() ? (F.name||F.src) : '未載入';
+  const pathEl=document.getElementById('filmPath');
+  if(document.activeElement!==pathEl) pathEl.value = (F.src && F.src.indexOf('blob:')!==0) ? F.src : '';
+  ['cue2','cue3'].forEach((id,k)=>{ const el=document.getElementById(id); if(document.activeElement!==el) el.value = F.cues[k]!=null ? F.cues[k] : ''; });
+}
+function saveCues(){ try{ localStorage.setItem('dweb.cues', JSON.stringify(F.cues)); }catch(e){} }
+function loadCues(){ try{ const c=JSON.parse(localStorage.getItem('dweb.cues')||'null'); if(Array.isArray(c)) F.cues=[c[0]!=null?c[0]:null, c[1]!=null?c[1]:null]; }catch(e){} }
+document.getElementById('filmFile').onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(f) setFilm(URL.createObjectURL(f), f.name); };
+document.getElementById('filmPath').onchange=e=>{ const v=e.target.value.trim(); setFilm(v||null, v); };
+document.getElementById('filmClr').onclick=()=>setFilm(null,'');
+['cue2','cue3'].forEach((id,k)=>{
+  document.getElementById(id).onchange=e=>{ const v=parseFloat(e.target.value); F.cues[k]=isFinite(v)?v:null; filmChap=-1; saveCues(); log('分鏡 0'+(k+2)+' 起點 → '+(F.cues[k]!=null?F.cues[k]+'s':'自動')); };
+});
+filmSlot.addEventListener('dragover',e=>{ e.preventDefault(); filmSlot.classList.add('drag'); });
+filmSlot.addEventListener('dragleave',()=>filmSlot.classList.remove('drag'));
+filmSlot.addEventListener('drop',e=>{ e.preventDefault(); filmSlot.classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f) setFilm(URL.createObjectURL(f), f.name); });
 
 /* ========== 3. Trigger 通道（銜接處） ========== */
 function fire(from, to, type){
@@ -690,7 +883,7 @@ function pulse(jn, dir){
 }
 function setChainWait(jn, on){
   const box=document.getElementById('jn'+jn);
-  if(box) box.style.borderLeftColor = on ? 'var(--amber)' : '';
+  if(box) box.style.borderLeftColor = on ? 'var(--st-warn)' : '';
 }
 
 /* ========== 4. WebSocket + HTTP 備援 ========== */
@@ -826,7 +1019,7 @@ function renderChain(){
     const to=(i+1)%N;
     const n=document.createElement('div');
     n.className='node'+(i===S.cur?' act':'');
-    n.innerHTML='<div>STAGE 0'+(i+1)+'</div><div class="n">'+(S.srcs[i]?'● 已載入':'○ 空')+'</div>';
+    n.innerHTML='<div>STAGE 0'+(i+1)+'</div><div class="n">'+((S.srcs[i]||filmActive())?'● 已載入':'○ 空')+'</div>';
     chainEl.appendChild(n);
 
     const j=document.createElement('div');
@@ -840,7 +1033,7 @@ function renderChain(){
 
     const a=document.createElement('div');
     a.className='node'; a.style.opacity='.45';
-    a.innerHTML='<div style="font-size:9px;letter-spacing:.14em;">↳ 接 STAGE 0'+(to+1)+'</div>';
+    a.innerHTML='<div class="sub">↳ 接 STAGE 0'+(to+1)+'</div>';
     chainEl.appendChild(a);
   }
 }
@@ -852,10 +1045,10 @@ chainEl.addEventListener('click', e=>{
   if(b){ const i=+b.dataset.fire; fire(i,(i+1)%N,'manual'); }
 });
 
-/* ========== 6. infographic 疊層（依分鏡腳本） ==========
-   分鏡一 SCENE 01 · 偵測數據啟動   → 六項指標正常（青綠）
-   分鏡二 SCENE 02 · 負壓防護       → 油煙 → 數值飆升 → 抽油煙機排出（橘紅）
-   分鏡三 SCENE 03 · 正壓守護／深層淨化 → 微正壓 → 曲線下降 → 健康淨化報告（青藍）
+/* ========== 6. 資訊疊層（依分鏡腳本） ==========
+   分鏡一 01 · DETECTION         偵測數據啟動   → 六項指標正常（藍 · 靜）
+   分鏡二 02 · NEGATIVE PRESSURE 負壓防護       → 油煙 → 數值飆升 → 抽油煙機排出（藍 · 亮）
+   分鏡三 03 · POSITIVE PRESSURE 正壓守護／深層淨化 → 微正壓 → 曲線下降 → 健康淨化報告（藍 · 深）
    ------------------------------------------------------------------
    數值會隨「該段影片的播放進度」在 from → to 之間內插，
    所以影片切段時 infographic 的顏色、文字、曲線會一起換。
@@ -873,16 +1066,16 @@ const PEAK = [700,0.05, 2.50, 100, 200, 150];   // 分鏡三腳本：油煙峰�
 const CLEAN= [480,0.03, 0.25,  12,  10,  20];   // 分鏡四腳本：淨化後
 
 const SCENES=[
-  { tag:'SCENE 01', name:'偵測數據啟動', cls:'s1', trend:'flat',
+  { tag:'01 · DETECTION', en:'AIR QUALITY MONITORING', name:'偵測數據啟動', cls:'s1', trend:'flat',
     from:BASE, to:BASE,
     beats:[[0.00,'偵測數據啟動','AI 即時監測空氣品質'],
            [0.45,'空氣品質正常','六項指標均在標準內']] },
-  { tag:'SCENE 02', name:'負壓防護', cls:'s2', trend:'up',
+  { tag:'02 · NEGATIVE PRESSURE', en:'RANGE HOOD EXHAUST', name:'負壓防護', cls:'s2', trend:'up',
     from:BASE, to:PEAK,
     beats:[[0.00,'烹飪情境偵測','爐火啟動 · 油煙擴散'],
            [0.35,'空氣數值異常','TVOC、PM2.5 急速上升'],
            [0.62,'負壓防護啟動','抽油煙機強力運轉 · 排出']] },
-  { tag:'SCENE 03', name:'正壓守護 · 深層淨化', cls:'s3', trend:'down',
+  { tag:'03 · POSITIVE PRESSURE', en:'FRESH AIR · DEEP PURIFICATION', name:'正壓守護 · 深層淨化', cls:'s3', trend:'down',
     from:PEAK, to:CLEAN,
     beats:[[0.00,'正壓守護啟動','新風送入潔淨空氣 · 微正壓'],
            [0.42,'深層淨化中','清除殘留 SVOCs · 曲線下降'],
@@ -945,10 +1138,15 @@ function setScene(i, hard){
   infoEl2.className='info '+sc.cls;
   document.getElementById('sceneTag').textContent=sc.tag;
   document.getElementById('sceneName').textContent=sc.name;
+  document.getElementById('sceneEn').textContent=sc.en||'';
   renderInfo(true);
 }
 function sceneProgress(){
   const sceneSel=document.getElementById('ovScene').value;
+  if(sceneSel==='auto' && filmActive() && filmV.duration && isFinite(filmV.duration)){
+    const c=filmCues(), i=filmChapter(filmV.currentTime), a=c[i], b=(i<N-1?c[i+1]:filmV.duration);
+    return Math.max(0,Math.min(1,(filmV.currentTime-a)/Math.max(0.01,b-a)));
+  }
   const v=vids[S.cur];
   if(sceneSel==='auto' && v && v.duration && isFinite(v.duration) && v.duration>0){
     return Math.max(0,Math.min(1, v.currentTime/v.duration));
@@ -1038,6 +1236,17 @@ function drawChart(){ renderInfo(true); }
 
 /* ========== 7. 面板開合 + 快捷鍵 ========== */
 const panel=document.getElementById('panel'), fhint=document.getElementById('fhint');
+/* 雙螢幕裁切（同 C 區窗景 UI-SPEC §2.5）：L / R 只看完整畫布的左半 / 右半，再按一次還原；
+   ?side=left|right 開機即定。只動 <html data-crop>，舞台算式在 CSS。 */
+const cropSel=document.getElementById('cropSel');
+function setCrop(side, toggle){
+  const root=document.documentElement, cur=root.dataset.crop||'';
+  if(!side || (toggle && cur===side)){ delete root.dataset.crop; side=''; }
+  else root.dataset.crop=side;
+  cropSel.value=side;
+  log('舞台 → '+(side==='left'?'雙螢幕 左半 L':side==='right'?'雙螢幕 右半 R':'單機 1:1'));
+}
+cropSel.onchange=e=>setCrop(e.target.value,false);
 function togglePanel(force){
   const open = (force!=null) ? force : !panel.classList.contains('open');
   panel.classList.toggle('open',open);
@@ -1050,6 +1259,7 @@ function typing(e){
 }
 document.addEventListener('keydown', e=>{
   if(typing(e)){ if(e.key==='Escape') e.target.blur(); return; }
+  if(e.key!==' ') filmKick();                       // 任一鍵都能解開被擋下的自動播放（Space 另有播放/暫停）
   const k=e.key.toLowerCase();
   if(k==='f'){ e.preventDefault(); togglePanel(); }
   else if(k==='escape'){ togglePanel(false); }
@@ -1057,6 +1267,7 @@ document.addEventListener('keydown', e=>{
   else if(k==='n'){ show(nextIdx(S.cur),false); }
   else if(k==='t'){ fire(S.cur,(S.cur+1)%N,'manual'); }
   else if(k==='o'){ const c=document.getElementById('ovShow'); c.checked=!c.checked; c.dispatchEvent(new Event('change')); }
+  else if(k==='l'||k==='r'){ setCrop(k==='l'?'left':'right',true); }
   else if(k==='1'||k==='2'||k==='3'){ show(+k-1,false); }
   else if(k==='q'||k==='w'||k==='e'){        // 不動影片，只預覽分鏡配色
     const n={q:1,w:2,e:3}[k];
@@ -1080,6 +1291,7 @@ document.getElementById('btnMute').onclick=e=>{
 document.getElementById('mode').onchange=e=>{
   S.mode=e.target.value;
   vids.forEach(v=>v.loop=(S.mode==='hold'));
+  if(filmActive()) filmV.loop=(S.mode!=='wait');
   log('模式 → '+S.mode);
 };
 document.getElementById('fade').onchange=e=>{ S.fade=Math.max(0,+e.target.value||0); };
@@ -1096,7 +1308,7 @@ document.getElementById('ovScene').onchange=e=>{
 document.getElementById('ovDur').onchange=()=>{ sceneT0=performance.now(); };
 const infoEl=document.getElementById('info');
 document.getElementById('ovGlass').oninput=e=>infoEl.style.setProperty('--glass',e.target.value);
-document.getElementById('ovBlur').oninput=e=>infoEl.style.setProperty('--glass-blur',e.target.value+'px');
+document.getElementById('ovBlur').oninput=e=>infoEl.style.setProperty('--glass-blur',(e.target.value/20)+'cqw');
 
 /* ========== 9. 對外 API ========== */
 window.Dweb = {
@@ -1115,6 +1327,15 @@ renderSlots(); renderChain();
 setScene(0,true);
 simToggle(true);
 readUrlTrigger();
+{ const side=new URLSearchParams(location.search).get('side'); if(side==='left'||side==='right') setCrop(side,false); }
+loadCues();
+{ const q=new URLSearchParams(location.search), cues=q.get('cues');
+  if(cues){ const a=cues.split(',').map(parseFloat); F.cues=[isFinite(a[0])?a[0]:null, isFinite(a[1])?a[1]:null]; }
+  const film=q.get('film');
+  if(film) setFilm(film, film);
+  else fetch('film.mp4',{method:'HEAD'}).then(r=>{ if(r.ok && !hasAny()) setFilm('film.mp4','film.mp4'); }).catch(()=>{});
+}
+renderFilm();
 ['stage1.mp4','stage2.mp4','stage3.mp4'].forEach((f,i)=>{
   fetch(f,{method:'HEAD'}).then(r=>{ if(r.ok) setSource(i,f,f); }).catch(()=>{});
 });
