@@ -37,7 +37,7 @@ for(let i=0;i<65;i++) particles.insertAdjacentHTML('beforeend','<circle r="2" fi
 let anchor=performance.now(), pos=0, playing=true, lastScene=-1, lastRender=0, connected=false, external=null, lost=false, mode='auto',lastStamp=0;
 let ambientPos=Date.now()/1000%30,ambientAnchor=performance.now(),lastVideoSeek=-Infinity,ambientStarted=false;
 const endpoint=q.get('sync')|| (location.port==='8776'?'/api/state':null);
-let channel= !endpoint && typeof BroadcastChannel!=='undefined' ?new BroadcastChannel(q.get('preview')==='1'?'dweb-preview-six-scenes':'dweb-six-scenes'):null;
+let channel= !endpoint && typeof BroadcastChannel!=='undefined' ?new BroadcastChannel(q.get('syncChannel')||(q.get('preview')==='1'?'dweb-preview-six-scenes':'dweb-six-scenes')):null;
 function time(){const raw=Math.max(0,pos+(playing?(performance.now()-anchor)/1000:0));if(!endpoint&&mode==='hold'){const i=idx(pos),end=starts[i+1]||duration;return starts[i]+(raw-starts[i])%(end-starts[i]);}if(!endpoint&&mode==='wait'){const end=starts[idx(pos)+1]||duration;return Math.min(end-.001,raw);}return raw%duration;}
 function idx(t){return starts.findLastIndex(s=>t>=s);}
 function updateState(s){if(s.stamp&&s.stamp<lastStamp)return;if(s.stamp){lastStamp=s.stamp;ambientPos=s.stamp;ambientAnchor=performance.now();}pos=s.time;anchor=performance.now();playing=s.playing;external=s.values||null;mode=s.mode||'auto';}

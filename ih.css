@@ -10,3 +10,6 @@
 
 /* Strong appliance silhouette for a small projector: clear border, transparent interior. */
 .chassis{stroke:#94aebc;stroke-width:5;opacity:.85}.glass-edge{stroke:#edfaff;stroke-width:10;opacity:1}.glass-inner{stroke:#b7d5e3;stroke-width:3;opacity:.85}.edge-joins{stroke:#d5edf8;stroke-width:3;opacity:.85}.edge-glint{stroke:#fff;stroke-width:6;opacity:.9}.front-lip{stroke:#c5e0ed;stroke-width:3;opacity:.85}.control-divider{stroke:#b7d5e3;stroke-width:2;opacity:.55}.touch-controls{stroke:#d2e8f1;opacity:.8}
+
+/* Match the six theatre cues; an unpowered IH retains a faint outline, not a heating ring. */
+body{--cue-color:#91a2ad}#surface text:not(.ih-mark):not(.ih-label){fill:var(--cue-color)}.ring,.arc,.fine,.ring-depth,.ring-bevel,.ring-highlight,.reticle,.leader,.hairline{stroke:var(--cue-color)}#embers circle,#bars rect{fill:var(--cue-color)}.heat-off .ring{opacity:.18;stroke-width:3}.heat-off .arc{opacity:.15}.heat-off .orbit{animation-play-state:paused}.heat-off #reactor>circle:first-child{opacity:0}.heat-off .ring-depth,.heat-off .ring-bevel,.heat-off .ring-highlight{opacity:.12}

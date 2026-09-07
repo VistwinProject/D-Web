@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>D 區 · IH 熱能投影</title><link rel="stylesheet" href="fonts/fonts.css"><link rel="stylesheet" href="ih.css?v=proportion-20260908"></head>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>D 區 · IH 熱能投影</title><link rel="stylesheet" href="fonts/fonts.css"><link rel="stylesheet" href="ih.css?v=cue-20260908"></head>
 <body>
 <main id="projection" aria-label="IH 爐面熱能與油煙展演投影">
 <svg id="surface" viewBox="0 0 900 1400" role="img" aria-labelledby="title desc"><title id="title">IH 熱能投影</title><desc id="desc">紅色發熱環與熱能、預估油煙溫度及 PM2.5 濃度，所有數據皆為展演模擬。</desc>
@@ -26,7 +26,7 @@
 <path d="M-199 -84A216 216 0 0 1 84 -199" class="ring-highlight"/>
 <g id="ticks"></g><g id="embers"></g>
 <path d="M-18 -282H18M0 -298V-266M-18 282H18M0 266V298M-282 -18V18M-298 0H-266M282 -18V18M266 0H298" class="reticle"/>
-<text y="-97" class="eyebrow center">INDUCTION · ENERGY ON</text>
+<text y="-97" class="eyebrow center"><tspan id="energy-state">INDUCTION · STANDBY</tspan></text>
 <text id="energy" y="-13" class="energy center">1,800</text><text y="25" class="unit center">W · 模擬輸出功率</text>
 <text id="action" y="105" class="action center">產生熱能</text>
 <path d="M-64 138H64" class="hairline"/>
@@ -51,7 +51,7 @@
 </svg></main>
 <div id="hint">F 校正 · 空白鍵暫停 · 雙擊全螢幕</div>
 <aside id="controls" hidden aria-label="投影校正"><header><h1>IH 投影校正</h1><button id="close" aria-label="關閉校正">×</button></header><p>調整紅環對準爐面，黑色區域不投影內容。</p>
-<label>展示階段<select id="mode"><option value="auto">自動循環 · 60 秒</option><option value="0">01 熱能啟動</option><option value="1">02 烹飪升溫</option><option value="2">03 排煙降溫</option></select></label>
+<label>展示階段<select id="mode"><option value="theater">跟隨劇場 · 六段同步</option><option value="auto">自動循環 · 60 秒</option><option value="0">01 熱能啟動</option><option value="1">02 烹飪升溫</option><option value="2">03 排煙降溫</option></select></label>
 <div id="sliders"></div><label class="check"><input type="checkbox" id="grid">顯示定位格線</label><label class="check"><input type="checkbox" id="mirror">水平鏡像</label>
 <div class="buttons"><button id="pause">暫停數值</button><button id="fullscreen">全螢幕投影</button><button id="reset">重設校正</button><button id="copy">複製校正網址</button></div><output id="message">校正設定儲存在此瀏覽器。</output><a href="preview.html">開啟雙電視展演</a></aside>
-<script src="ih.js"></script></body></html>
+<script src="ih.js?v=cue-20260908"></script></body></html>
