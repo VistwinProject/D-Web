@@ -1,27 +1,22 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>D 區 · IH 熱能投影</title><link rel="stylesheet" href="fonts/fonts.css"><link rel="stylesheet" href="ih.css?v=frame-20260908"></head>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>D 區 · IH 熱能投影</title><link rel="stylesheet" href="fonts/fonts.css"><link rel="stylesheet" href="ih.css?v=proportion-20260908"></head>
 <body>
 <main id="projection" aria-label="IH 爐面熱能與油煙展演投影">
-<svg id="surface" viewBox="0 0 900 1600" role="img" aria-labelledby="title desc"><title id="title">IH 熱能投影</title><desc id="desc">紅色發熱環與熱能、預估油煙溫度及 PM2.5 濃度，所有數據皆為展演模擬。</desc>
+<svg id="surface" viewBox="0 0 900 1400" role="img" aria-labelledby="title desc"><title id="title">IH 熱能投影</title><desc id="desc">紅色發熱環與熱能、預估油煙溫度及 PM2.5 濃度，所有數據皆為展演模擬。</desc>
 <defs><radialGradient id="heat"><stop offset="65%" stop-color="#ff392a" stop-opacity="0"/><stop offset="92%" stop-color="#ff392a" stop-opacity=".13"/><stop offset="100%" stop-color="#ff392a" stop-opacity="0"/></radialGradient></defs>
-<g id="calibration" hidden fill="none" stroke="#ff6258" stroke-width="2"><rect x="20" y="20" width="860" height="1560"/><path d="M450 20V1580M20 800H880" stroke-dasharray="10 15"/></g>
-<g id="hob-frame" transform="translate(180 140) scale(.6 .72)" aria-label="俯視透明 IH 爐體，圓角玻璃面板與線框底座">
-<rect x="54" y="68" width="792" height="1472" rx="65" class="chassis"/>
-<rect x="64" y="48" width="772" height="1472" rx="58" class="glass-edge"/>
-<rect x="79" y="63" width="742" height="1442" rx="45" class="glass-inner"/>
-<path d="M64 118L54 138M836 118L846 138M64 1450L54 1470M836 1450L846 1470M122 1520L112 1540M778 1520L788 1540" class="edge-joins"/>
-<path d="M65 235V1320M835 235V1320" class="edge-glint"/>
-<path d="M97 1453Q97 1487 131 1487H769Q803 1487 803 1453" class="front-lip"/>
-<g class="vent" stroke-linecap="round"><path d="M306 193H594M320 205H580M334 217H566"/></g>
-<path d="M99 1325H801" class="control-divider"/>
-<g class="touch-controls" transform="translate(450 1387)">
-<circle r="28"/><path d="M0 -17V2M-12 -10A17 17 0 1 0 12 -10"/>
-<path d="M-218 0H-188M188 0H218M203 -15V15"/>
-<path d="M-142 0H-69M69 0H142" stroke-dasharray="3 11"/>
-</g>
+<g id="calibration" hidden fill="none" stroke="#ff6258" stroke-width="2"><rect x="20" y="20" width="860" height="1360"/><path d="M450 20V1380M20 700H880" stroke-dasharray="10 15"/></g>
+<g id="hob-frame" aria-label="俯視單口 IH 爐，正常長寬比例的透明玻璃外框">
+<rect x="181" y="253" width="538" height="722" rx="37" class="chassis"/>
+<rect x="190" y="240" width="520" height="720" rx="30" class="glass-edge"/>
+<rect x="201" y="251" width="498" height="698" rx="22" class="glass-inner"/>
+<path d="M190 280L181 293M710 280L719 293M190 921L181 934M710 921L719 934M220 960L211 975M680 960L689 975" class="edge-joins"/>
+<path d="M190 324V846M710 324V846" class="edge-glint"/>
+<path d="M212 918Q212 937 231 937H669Q688 937 688 918" class="front-lip"/>
+<path d="M214 866H686" class="control-divider"/>
+<g class="touch-controls" transform="translate(450 907)"><circle r="22"/><path d="M0 -14V1M-10 -8A14 14 0 1 0 10 -8"/><path d="M-170 0H-148M148 0H170M159 -11V11"/><path d="M-115 0H-60M60 0H115" stroke-dasharray="2 9"/></g>
 </g>
 <g class="mast"><text x="450" y="93" class="brand center">寶舖 · 居家風險劇場</text><text x="450" y="129" class="eyebrow center">D / IH — THERMAL FIELD</text></g>
-<g id="reactor" transform="translate(450 558) scale(.68)">
+<g id="reactor" transform="translate(450 548) scale(.68)">
 <circle r="280" fill="url(#heat)"/>
 <circle cy="3" r="216" class="ring-depth"/>
 <path d="M-216 0A216 216 0 0 0 216 0" transform="translate(0 3)" class="ring-bevel"/>
@@ -36,23 +31,23 @@
 <text id="action" y="105" class="action center">產生熱能</text>
 <path d="M-64 138H64" class="hairline"/>
 </g>
-<g id="ih-icon" transform="translate(374 228)" aria-label="IH 感應爐標示">
+<g id="ih-icon" transform="translate(374 300)" aria-label="IH 感應爐標示">
 <g fill="none" stroke="#c5d9e2" stroke-width="2"><path d="M-32 -6C-44 -20 -7 -24 -10 -8S-37 12 -29 20M-20 -6C-32 -20 5 -24 2 -8S-25 12 -17 20M-8 -6C-20 -20 17 -24 14 -8S-13 12 -5 20"/><path d="M-44 28H22"/></g>
 <text x="42" y="2" class="ih-mark">IH</text><text x="42" y="29" class="ih-label">感應爐</text>
 </g>
-<path d="M450 781V812" class="leader"/><text id="phase" x="450" y="850" class="phase center">02 / 烹飪升溫</text>
-<g class="outside-metric" transform="translate(32 653)">
+<path d="M450 755V774" class="leader"/><text id="phase" x="450" y="801" class="phase center">02 / 烹飪升溫</text>
+<g class="outside-metric" transform="translate(20 505)">
 <text class="metric-label">預估油煙</text><text y="32" class="metric-label">溫度</text><text id="temperature" y="117" class="number">165</text><text y="154" class="metric-unit">°C</text>
 </g>
-<path d="M42 828H148L236 740H262" class="leader"/><circle cx="262" cy="740" r="4" fill="#ff5948"/>
-<g class="outside-metric" transform="translate(727 880)">
+<path d="M30 680H144L213 625H236" class="leader"/><circle cx="236" cy="625" r="4" fill="#ff5948"/>
+<g class="outside-metric" transform="translate(733 740)">
 <text class="metric-label">預估油煙</text><text y="32" class="metric-label">濃度</text><text id="concentration" y="117" class="number">120</text><text y="154" class="metric-unit">µg/m³</text><text y="188" class="caption">PM2.5</text>
 </g>
-<path d="M866 1085H737L653 1001H626" class="leader"/><circle cx="626" cy="1001" r="4" fill="#ff5948"/>
-<g id="bars" transform="translate(302 921) scale(.68 1)"></g>
-<text id="status" x="450" y="993" class="status center">油煙生成 · 持續觀察</text>
-<text x="450" y="1335" class="caption center">熱能產生 → 油煙生成 → 集中排出</text>
-<text x="450" y="1380" class="disclaimer center">展演模擬 · 非爐具控制與現場量測</text>
+<path d="M868 944H757L687 817H665" class="leader"/><circle cx="665" cy="817" r="4" fill="#ff5948"/>
+<g id="bars" transform="translate(302 822) scale(.68 1)"></g>
+<text id="status" x="450" y="851" class="status center">油煙生成 · 持續觀察</text>
+<text x="450" y="1050" class="caption center">熱能產生 → 油煙生成 → 集中排出</text>
+<text x="450" y="1095" class="disclaimer center">展演模擬 · 非爐具控制與現場量測</text>
 </svg></main>
 <div id="hint">F 校正 · 空白鍵暫停 · 雙擊全螢幕</div>
 <aside id="controls" hidden aria-label="投影校正"><header><h1>IH 投影校正</h1><button id="close" aria-label="關閉校正">×</button></header><p>調整紅環對準爐面，黑色區域不投影內容。</p>
