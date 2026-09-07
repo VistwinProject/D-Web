@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>D 區 · IH 熱能投影</title><link rel="stylesheet" href="fonts/fonts.css"><link rel="stylesheet" href="ih.css"></head>
+<body>
+<main id="projection" aria-label="IH 爐面熱能與油煙展演投影">
+<svg id="surface" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc"><title id="title">IH 熱能投影</title><desc id="desc">紅色發熱環與熱能、預估油煙溫度及 PM2.5 濃度，所有數據皆為展演模擬。</desc>
+<defs><radialGradient id="heat"><stop offset="65%" stop-color="#ff392a" stop-opacity="0"/><stop offset="92%" stop-color="#ff392a" stop-opacity=".13"/><stop offset="100%" stop-color="#ff392a" stop-opacity="0"/></radialGradient></defs>
+<g id="calibration" hidden fill="none" stroke="#ff6258" stroke-width="2"><rect x="20" y="20" width="1560" height="860"/><path d="M800 20V880M20 450H1580" stroke-dasharray="10 15"/></g>
+<g id="hob-frame" aria-label="IH 玻璃爐面外框">
+<path d="M84 48H1516L1540 72V838L1516 862H84L60 838V72Z" transform="translate(0 6)" class="hob-depth"/>
+<path d="M60 838L84 862H1516L1540 838V844L1516 868H84L60 844Z" class="hob-bevel"/>
+<path d="M84 48H1516L1540 72V838L1516 862H84L60 838V72Z" class="hob-outline"/>
+<path d="M91 60H1509L1528 79V831L1509 850H91L72 831V79Z" class="hob-inset"/>
+<path d="M84 48H1516L1540 72M60 72V838" class="hob-highlight"/>
+<path d="M102 67H487M1521 107V293" class="hob-reflection"/>
+<path d="M87 862H1514" class="hob-bottom"/>
+<rect x="744" y="858" width="112" height="3" rx="1.5" fill="#ff6253" opacity=".65"/>
+</g>
+<g class="mast"><text x="110" y="104" class="brand">寶舖 · 居家風險劇場</text><text x="1490" y="104" class="eyebrow" text-anchor="end">D / IH — THERMAL FIELD</text><path d="M110 130H1490" class="hairline"/></g>
+<g id="reactor" transform="translate(490 458)">
+<circle r="280" fill="url(#heat)"/>
+<circle cy="3" r="216" class="ring-depth"/>
+<path d="M-216 0A216 216 0 0 0 216 0" transform="translate(0 3)" class="ring-bevel"/>
+<circle r="265" class="fine"/><circle r="246" class="track"/>
+<g class="orbit"><circle r="246" class="arc" stroke-dasharray="820 180 190 356"/></g>
+<circle r="216" class="ring"/><circle r="208" class="fine"/>
+<path d="M-199 -84A216 216 0 0 1 84 -199" class="ring-highlight"/>
+<g id="ticks"></g><g id="embers"></g>
+<path d="M-18 -282H18M0 -298V-266M-18 282H18M0 266V298M-282 -18V18M-298 0H-266M282 -18V18M266 0H298" class="reticle"/>
+<text y="-97" class="eyebrow center">INDUCTION · ENERGY ON</text>
+<text id="energy" y="-13" class="energy center">1,800</text><text y="25" class="unit center">W · 模擬輸出功率</text>
+<text id="action" y="105" class="action center">產生熱能</text>
+<path d="M-64 138H64" class="hairline"/>
+</g>
+<path d="M776 362H838L878 322H940" class="leader"/><circle cx="776" cy="362" r="5" fill="#ff5948"/>
+<g transform="translate(962 245)">
+<text id="phase" class="phase">02 / 烹飪升溫</text>
+<text y="64" class="metric-label">預估油煙溫度</text><text id="temperature" y="155" class="number">165</text><text x="275" y="151" class="metric-unit">°C</text>
+<path d="M0 184H440" class="hairline"/>
+<text y="237" class="metric-label">預估油煙濃度</text><text id="concentration" y="331" class="number">120</text><text x="275" y="326" class="metric-unit">µg/m³</text>
+<text y="372" class="caption">以 PM2.5 模擬呈現</text>
+<g id="bars" transform="translate(0 412)"></g>
+<text id="status" y="467" class="status">油煙生成 · 持續觀察</text>
+</g>
+<g class="bottom"><path d="M110 792H1490" class="hairline"/><text x="110" y="835" class="caption">熱能產生 → 油煙生成 → 集中排出</text><text x="1490" y="835" class="disclaimer" text-anchor="end">展演模擬 · 非爐具控制與現場量測</text></g>
+</svg></main>
+<div id="hint">F 校正 · 空白鍵暫停 · 雙擊全螢幕</div>
+<aside id="controls" hidden aria-label="投影校正"><header><h1>IH 投影校正</h1><button id="close" aria-label="關閉校正">×</button></header><p>調整紅環對準爐面，黑色區域不投影內容。</p>
+<label>展示階段<select id="mode"><option value="auto">自動循環 · 60 秒</option><option value="0">01 熱能啟動</option><option value="1">02 烹飪升溫</option><option value="2">03 排煙降溫</option></select></label>
+<div id="sliders"></div><label class="check"><input type="checkbox" id="grid">顯示定位格線</label><label class="check"><input type="checkbox" id="mirror">水平鏡像</label>
+<div class="buttons"><button id="pause">暫停數值</button><button id="fullscreen">全螢幕投影</button><button id="reset">重設校正</button><button id="copy">複製校正網址</button></div><output id="message">校正設定儲存在此瀏覽器。</output><a href="preview.html">開啟雙電視展演</a></aside>
+<script src="ih.js"></script></body></html>

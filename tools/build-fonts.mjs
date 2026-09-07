@@ -26,7 +26,7 @@ const FILES = path.join(OUT, "files");
 
 /* 1 · 本頁用到的字：只挑 CJK 與全形（U+2E80 以上、排除 emoji）。
        符號（▶ ◀ ● ○ ↳ …）交給 Inter / 系統字，它們不受字重塌陷影響。 */
-const src = ['Dweb.html','theater.js','kitchen-stage.js','preview.html'].filter(f=>fs.existsSync(path.join(ROOT,f))).map(f=>fs.readFileSync(path.join(ROOT,f),'utf8')).join('\n');
+const src = ['Dweb.html','theater.js','kitchen-stage.js','preview.html','preview-state.js','ih.html','ih.js'].filter(f=>fs.existsSync(path.join(ROOT,f))).map(f=>fs.readFileSync(path.join(ROOT,f),'utf8')).join('\n');
 const used = new Set([...src].map(c => c.codePointAt(0)).filter(cp => cp >= 0x2E80 && cp < 0x1F000));
 console.log(`Dweb.html 用到的 CJK / 全形字元：${used.size}`);
 
