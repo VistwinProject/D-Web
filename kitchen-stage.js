@@ -81,6 +81,7 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  if(i===2){ui.querySelector('.state-label span').textContent=preparing?'準備晚餐 · 爐台待機':states[i];ui.querySelector('.scene-explanation h2').textContent=preparing?'晚餐即將開始':process[i][1];ui.querySelector('.scene-explanation p').textContent=preparing?'等媽媽準備烹飪，爐台才開始產生熱能。':process[i][2];}
  if(i===3){ui.querySelector('.state-label span').textContent=awaitingExhaust?'污染提醒 · 準備排煙':states[i];ui.querySelector('.scene-explanation h2').textContent=awaitingExhaust?'切換排煙強檔':process[i][1];ui.querySelector('.scene-explanation p').textContent=awaitingExhaust?'污染指標升高，空氣管家發出提醒。':process[i][2];}
  }
+ if(document.documentElement.dataset.cinemaStatus!=='ready') document.documentElement.dataset.cinemaStatus='ready';
  if(!renderer||!smoke)return;
  // All positions derive from the shared exhibition clock, not random frame state.
  const arr=smokeGeo.attributes.position.array;smoke.visible=i!==1&&!(window.D_SHOW&&i===2&&t<window.D_SHOW.events.heatOn);smoke.material.opacity=i===0?.6:i===2?1:i===3?.95:i===4?.55:.3*(1-p);

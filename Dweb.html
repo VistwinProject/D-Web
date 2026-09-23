@@ -1,9 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh-Hant" data-zone="D">
+<html lang="zh-Hant" data-zone="D" data-player="cinema" data-cinema-status="loading">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dweb — 展區 D：居家風險劇場</title>
+<script>
+// Choose the player before any stage markup can paint, even on a cold connection.
+if(new URLSearchParams(location.search).get('legacy')==='1') document.documentElement.dataset.player='legacy';
+</script>
+<style>
+html[data-player="cinema"] .stage>.info,
+html[data-player="cinema"] .stage>.story,
+html[data-player="cinema"] .stage>.novideo,
+html[data-player="cinema"] .fhint{display:none!important}
+.cinema-startup{display:none}
+html[data-player="cinema"]:not([data-cinema-status="ready"]) .cinema-ui{visibility:hidden}
+html[data-player="cinema"]:not([data-cinema-status="ready"]) .cinema-startup{position:absolute;inset:0;display:flex;align-items:center;color:#a6b5bf;font-size:1.4cqw;pointer-events:none}
+.cinema-startup span{width:50%;text-align:center}
+.cinema-startup span::after{content:'劇場載入中'}
+html[data-cinema-status="error"] .cinema-startup span::after{content:'載入失敗 · 請重新整理'}
+</style>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="theater.css">
 <link rel="stylesheet" href="cinema.css?v=voice-20260923">
@@ -428,9 +444,11 @@ kbd{
 </style>
 </head>
 <body>
+<script>if(document.documentElement.dataset.player==='cinema') document.body.classList.add('theater','cinema');</script>
 
 <!-- ============ 1. 舞台（1:1）+ 2. 資訊疊層 ============ -->
 <div class="stage" id="stage">
+  <div class="cinema-startup" role="status"><span></span><span></span></div>
   <video id="v0" playsinline muted></video>
   <video id="v1" playsinline muted></video>
   <video id="v2" playsinline muted></video>
@@ -1349,7 +1367,7 @@ log('Dweb 就緒 · 按 F 開啟介面');
 <script src="show-config.js?v=voice-20260923"></script>
 <script src="theater.js?v=voice-20260923"></script>
 <script type="importmap">{"imports":{"three":"./vendor/build/three.module.js"}}</script>
-<script type="module" src="kitchen-stage.js?v=voice-20260923"></script>
+<script type="module" src="kitchen-stage.js?v=startup-20260923" onerror="document.documentElement.dataset.cinemaStatus='error'"></script>
 <script src="theater-voice.js?v=voice-20260923"></script>
 <script src="voice-captions.js?v=voice-20260923"></script>
 </body>

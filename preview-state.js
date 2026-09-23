@@ -10,7 +10,9 @@ let cuePriority=Date.now();
 function publish(state){bus?.postMessage(state);cues?.postMessage({...state,owner:channelName,priority:cuePriority});}
 if(cues)cues.onmessage=e=>{if(e.data.request==='cue')cues.postMessage({...snapshot(),owner:channelName,priority:cuePriority});};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){cuePriority=Date.now();if(!server)publish(snapshot());}});
-if(!server)document.querySelectorAll('iframe').forEach(frame=>{const url=new URL(frame.src,location.href);url.searchParams.set('syncChannel',channelName);frame.src=url.href;});
+// Set the clock before the first navigation; replacing an already-loading src
+// used to restart both panels and amplify the old interface's startup flash.
+document.querySelectorAll('iframe').forEach(frame=>{const url=new URL(frame.dataset.src||frame.getAttribute('src'),location.href);if(!server)url.searchParams.set('syncChannel',channelName);frame.src=url.href;});
 let position=0,anchor=performance.now(),playing=true,values=null;
 function snapshot(){return {source:'preview-clock',time:(position+(playing?(performance.now()-anchor)/1000:0))%duration,playing,values,mode:'auto',stamp:Date.now()/1000};}
 function apply(s){position=s.time;anchor=performance.now();playing=s.playing;values=s.values||null;}
