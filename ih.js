@@ -22,7 +22,7 @@ document.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].include
 $('copy').onclick=async()=>{const url=new URL(location.href);for(const [k,v] of Object.entries(config))url.searchParams.set(k,typeof v==='boolean'?(v?'1':'0'):v);url.searchParams.set('mode',mode);try{await navigator.clipboard.writeText(url.href);$('message').textContent='已複製，開啟網址即可套用此校正。';}catch{$('message').textContent=url.href;}};
 setTimeout(()=>$('hint').classList.add('gone'),6500);if(query.get('calibrate')==='1')$('controls').hidden=false;
 // Read-only cue follower: IH never echoes playback states to the theatre.
-const starts=[0,12,24,40,56,72],colors=['#a69bf5','#70df9f','#ff6258','#ffc278','#54ddab','#a9e1b8'];
+const duration=window.D_SHOW?.duration||90,starts=window.D_SHOW?.starts||[0,12,24,40,56,72],colors=['#a69bf5','#70df9f','#ff6258','#ffc278','#54ddab','#a9e1b8'];
 let cue=null,cueAt=0,cueOwner='',cuePriority=-1;
 function acceptCue(s){if(!Number.isFinite(s.time)||typeof s.playing!=='boolean')return;if(s.priority!=null&&s.priority<cuePriority&&performance.now()-cueAt<4000)return;cue=s;cueAt=performance.now();cueOwner=s.owner||'server';cuePriority=s.priority??0;}
 const endpoint=query.get('sync')||(location.port==='8776'?'/api/state':null);
@@ -42,8 +42,18 @@ function frame(now){const dt=Math.min((now-last)/1000,.1);last=now;if(!paused&&!
 let index,p,phase,t,active,live=true,isPlaying=!paused;
 if(mode==='theater'){
  live=!!cue&&now-cueAt<4000;
- t=cue?(cue.time+(live&&cue.playing?(now-cueAt)/1000:0))%90:0;
- index=Math.max(0,starts.findLastIndex(n=>t>=n));p=(t-starts[index])/((starts[index+1]||90)-starts[index]);phase=theatre[index];active=live&&(index===2||index===3);isPlaying=live&&cue.playing;
+ t=cue?(cue.time+(live&&cue.playing?(now-cueAt)/1000:0))%duration:0;
+ index=Math.max(0,starts.findLastIndex(n=>t>=n));p=(t-starts[index])/((starts[index+1]||duration)-starts[index]);phase=theatre[index];active=live&&(index===2||index===3);isPlaying=live&&cue.playing;
+ if(window.D_SHOW&&live){
+  const {heatOn,heatOff}=window.D_SHOW.events;active=t>=heatOn&&t<heatOff;
+  const warm=Math.min(1,Math.max(0,(t-heatOn)/12)),cool=Math.min(1,Math.max(0,(t-heatOff)/20));
+  const power=active?(index===2?600+1500*warm:index===3?1600:800):0;
+  const temp=t<heatOn?25:t<heatOff?25+160*warm:185-160*cool;
+  const begin=index===2?heatOn:index===3?window.D_SHOW.events.exhaustOn:starts[index];
+  const progress=Math.max(0,(t-begin)/((starts[index+1]||duration)-begin)),smooth=progress*progress*(3-2*progress);
+  const before=[10,10,10,200,60,10][index],after=[10,10,200,60,10,10][index],pm=before+(after-before)*smooth;
+  phase={...phase,power:[power,power],temp:[temp,temp],pm:[pm,pm],action:active?'產生熱能':t<heatOn?'待機偵測':'熱能關閉',status:active?'烹飪持續 · 排煙與新風同步守護':t<heatOn?'等待烹飪開始':'爐火已關閉 · 持續排煙淨化'};
+ }
  if(!live){phase={name:cue?'同步中斷':'等待劇場分鏡',power:[0,0],temp:[25,25],pm:[10,10],action:'待機中',status:'請開啟同一瀏覽器的雙電視展演'};p=0;}
 }else{index=mode==='auto'?Math.floor(elapsed/20)%3:Number(mode);p=mode==='auto'?(elapsed%20)/20:Math.min(elapsed/20,1);phase=demo[index];t=elapsed;active=true;}
 const e=p*p*(3-2*p),mix=a=>a[0]+(a[1]-a[0])*e,color=mode==='theater'?(live?colors[index]:'#91a2ad'):'#ff6258';

@@ -3,7 +3,7 @@ if(new URLSearchParams(location.search).get('legacy')!=='1') (()=>{
 window.theaterActive=true; document.body.classList.add('theater');
 S.junction.push('D_T4','D_T5','D_T6');renderChain();
 clearInterval(simTimer);
-const q=new URLSearchParams(location.search), duration=90, starts=[0,12,24,40,56,72];
+const q=new URLSearchParams(location.search), duration=window.D_SHOW?.duration||90, starts=window.D_SHOW?.starts||[0,12,24,40,56,72];
 const normal=[480,.03,.20,8,10,20], peak=[900,.07,2.5,100,200,150], reduced=[650,.045,.8,35,60,65], clean=[480,.03,.20,8,10,20];
 const scenes=[
  ['ARRIVAL','看不見，也需要被看見','每一次呼吸，都與室內空氣相連。','PM2.5 懸浮微粒 · TVOC 揮發性有機物 · HCHO 甲醛',normal,normal,'flat'],
@@ -38,6 +38,10 @@ let anchor=performance.now(), pos=0, playing=true, lastScene=-1, lastRender=0, c
 let ambientPos=Date.now()/1000%30,ambientAnchor=performance.now(),lastVideoSeek=-Infinity,ambientStarted=false;
 const endpoint=q.get('sync')|| (location.port==='8776'?'/api/state':null);
 let channel= !endpoint && typeof BroadcastChannel!=='undefined' ?new BroadcastChannel(q.get('syncChannel')||(q.get('preview')==='1'?'dweb-preview-six-scenes':'dweb-six-scenes')):null;
+const exhibitCue=!endpoint&&window.parent===window&&q.get('side')!=='right'&&typeof BroadcastChannel!=='undefined'?new BroadcastChannel('dweb-exhibit-cue'):null;
+const cueOwner='stage-'+crypto.randomUUID();let cuePriority=Date.now();
+function publishExhibitCue(){exhibitCue?.postMessage({source:'preview-clock',owner:cueOwner,priority:cuePriority,time:time(),playing,values:external,mode,stamp:Date.now()/1000});}
+if(exhibitCue){exhibitCue.onmessage=e=>{if(e.data.request==='cue')publishExhibitCue();};setInterval(publishExhibitCue,250);document.addEventListener('visibilitychange',()=>{if(!document.hidden){cuePriority=Date.now();publishExhibitCue();}});}
 function time(){const raw=Math.max(0,pos+(playing?(performance.now()-anchor)/1000:0));if(!endpoint&&mode==='hold'){const i=idx(pos),end=starts[i+1]||duration;return starts[i]+(raw-starts[i])%(end-starts[i]);}if(!endpoint&&mode==='wait'){const end=starts[idx(pos)+1]||duration;return Math.min(end-.001,raw);}return raw%duration;}
 function idx(t){return starts.findLastIndex(s=>t>=s);}
 function updateState(s){if(s.stamp&&s.stamp<lastStamp)return;if(s.stamp){lastStamp=s.stamp;ambientPos=s.stamp;ambientAnchor=performance.now();}pos=s.time;anchor=performance.now();playing=s.playing;external=s.values||null;mode=s.mode||'auto';}
@@ -51,13 +55,17 @@ function localCommand(p){let t=time();const c=String(p.cmd||p.command||'').toLow
  pos=t;anchor=performance.now();}
 async function command(p){if(endpoint){try{const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});if(!r.ok)throw Error();updateState(await r.json());}catch{log('同步命令失敗，請確認同步服務','e');}return;}
  localCommand(p);channel?.postMessage({time:time(),playing,values:external,mode});}
+window.addEventListener('dweb-command',e=>command(e.detail));
+control.querySelector('h2').textContent=`六段展演 · ${duration} 秒`;
+control.querySelector('input').max=duration-.1;
 if(channel){channel.onmessage=e=>{if(e.data.request)channel.postMessage({time:time(),playing,values:external,mode});else updateState(e.data);};channel.postMessage({request:true});}
 const oldReceive=receive;
 receive=function(p,src){if(typeof p==='string'){try{p=JSON.parse(p);}catch{p={cmd:p};}}if(!p||p.src==='Dweb')return;
 const c=p.cmd||p.command||p.type;if(['next','prev','trigger','advance','goto','stage','scene','play','pause','data','reset','simulate','mode'].includes(c)){command({...p,cmd:c});if(typeof Dweb.onTrigger==='function')Dweb.onTrigger(p);}else oldReceive(p,src);};
 Object.assign(Dweb,{next:()=>command({cmd:'next'}),prev:()=>command({cmd:'prev'}),goto:n=>command({cmd:'goto',stage:n}),scene:n=>command({cmd:'scene',n}),play:()=>command({cmd:'play'}),pause:()=>command({cmd:'pause'}),data:p=>command({cmd:'data',...p}),receive});
 show=i=>command({cmd:'goto',stage:i+1});filmKick=()=>{};
-sceneProgress=()=>{const t=time(),i=idx(t);return (t-starts[i])/((starts[i+1]||duration)-starts[i]);};
+function metricProgress(t,i){const begin=window.D_SHOW?(i===2?window.D_SHOW.events.heatOn:i===3?window.D_SHOW.events.exhaustOn:starts[i]):starts[i];return Math.max(0,(t-begin)/((starts[i+1]||duration)-begin));}
+sceneProgress=()=>{const t=time();return metricProgress(t,idx(t));};
 control.onclick=e=>{const b=e.target.closest('button');if(!b)return;command(b.dataset.scene?{cmd:'goto',stage:+b.dataset.scene}:{cmd:b.dataset.action});};
 control.querySelector('input').oninput=e=>{const t=+e.target.value;if(endpoint){fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd:'seek',time:t})}).then(r=>r.json()).then(updateState).catch(()=>{});}else{pos=t;anchor=performance.now();channel?.postMessage({time:t,playing,values:external,mode});}};
 document.getElementById('btnPlay').onclick=()=>command({cmd:playing?'pause':'play'});
@@ -78,8 +86,8 @@ function frame(now){let t=time();if(!endpoint&&mode==='wait'&&t>=(starts[idx(pos
  if(prev>=0&&q.get('side')!=='right')send({src:'Dweb',junction:S.junction[prev]||`D_T${prev+1}`,type:i===(prev+1)%6?'stage_end':'stage_start',from:prev+1,to:i+1,ts:Date.now(),timeline:t});}
  if(now-lastRender>150){lastRender=now;S.override=!!external;if(external)S.values=external.slice();renderInfo(true);
  story.querySelector('.report').style.visibility=external?'hidden':'visible';
- aqiHist=Array.from({length:90},(_,k)=>{const at=Math.max(0,t-(89-k)),j=idx(at),f=(at-starts[j])/((starts[j+1]||duration)-starts[j]),e=f*f*(3-2*f);return aqiFromPM25(scenes[j][4][4]+(scenes[j][5][4]-scenes[j][4][4])*e);});drawSpark();
- story.querySelector('#storyTime').textContent=`0${i+1} / 06　·　${Math.floor(t).toString().padStart(2,'0')} / 90 s`;
+ aqiHist=Array.from({length:90},(_,k)=>{const at=Math.max(0,t-(89-k)),j=idx(at),f=metricProgress(at,j),e=f*f*(3-2*f);return aqiFromPM25(scenes[j][4][4]+(scenes[j][5][4]-scenes[j][4][4])*e);});drawSpark();
+ story.querySelector('#storyTime').textContent=`0${i+1} / 06　·　${Math.floor(t).toString().padStart(2,'0')} / ${duration} s`;
  if(document.activeElement!==control.querySelector('input'))control.querySelector('input').value=t;
  const ambient=document.body.classList.contains('cinema'),period=Number.isFinite(filmV.duration)?filmV.duration:30,target=ambient?(ambientPos+(now-ambientAnchor)/1000)%period:t%period;
  if(filmV.readyState>=2&&!filmV.seeking){
@@ -93,7 +101,7 @@ function frame(now){let t=time();if(!endpoint&&mode==='wait'&&t>=(starts[idx(pos
   if(ambient)filmV.loop=true;if(ambient||playing){if(filmV.paused)filmV.play().catch(()=>{});}else filmV.pause();
  }
  }
- window.dispatchEvent(new CustomEvent('dweb-frame',{detail:{time:t,scene:i,progress:p,playing,values:S.values.slice(),external:!!external}}));
+ window.dispatchEvent(new CustomEvent('dweb-frame',{detail:{time:t,scene:i,progress:p,playing,mode,values:S.values.slice(),external:!!external}}));
  if(!document.body.classList.contains('cinema')){
  story.querySelector('#barrier').setAttribute('opacity',i===4?'.8':'0');
  story.querySelectorAll('.pollutants>div').forEach((el,k)=>el.classList.toggle('active',k===Math.min(5,Math.floor(p*6))));

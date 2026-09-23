@@ -3,7 +3,10 @@ import argparse, json, time, threading, functools
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
-STARTS = [0, 12, 24, 40, 56, 72]
+show_file = Path(__file__).resolve().parents[1] / 'show.json'
+SHOW = json.loads(show_file.read_text(encoding='utf-8')) if show_file.exists() else {}
+STARTS = SHOW.get('starts', [0, 12, 24, 40, 56, 72])
+DURATION = SHOW.get('duration', 90)
 METRICS = ['co2','hcho','tvoc','pm1','pm25','pm10']
 NORMAL = [480,.03,.2,8,10,20]
 TARGETS = [NORMAL,NORMAL,[900,.07,2.5,100,200,150],[650,.045,.8,35,60,65],NORMAL,NORMAL]
@@ -16,13 +19,13 @@ def snapshot():
     elapsed = time.monotonic()-anchor if state['playing'] else 0
     t = state['time']+elapsed
     start_scene = max(i for i,s in enumerate(STARTS) if state['time'] >= s)
-    boundary = (STARTS+[90])[start_scene+1]
+    boundary = (STARTS+[DURATION])[start_scene+1]
     if state['mode'] == 'wait' and t >= boundary:
         state.update(time=boundary-.001, playing=False)
         t=state['time']; anchor=time.monotonic()
     elif state['mode'] == 'hold':
         t = STARTS[start_scene]+(t-STARTS[start_scene])%(boundary-STARTS[start_scene])
-    else: t %= 90
+    else: t %= DURATION
     return {**state, 'time':t, 'stamp':time.monotonic()}
 
 def command(p):
@@ -37,7 +40,7 @@ def command(p):
         t=STARTS[(i+1)%6]
         if state['mode']=='wait': state['playing']=True
     elif c=='prev': t=STARTS[(i+5)%6]
-    elif c=='seek': t=max(0,min(89.999,float(p['time'])))
+    elif c=='seek': t=max(0,min(DURATION-.001,float(p['time'])))
     elif c=='reset': t=0; state.update(playing=True,values=None)
     elif c=='play': state['playing']=True
     elif c=='pause': state['playing']=False
@@ -46,7 +49,8 @@ def command(p):
         state['mode']=p['value']
     elif c=='simulate': state['values']=None
     elif c=='data':
-        f=(t-STARTS[i])/((STARTS+[90])[i+1]-STARTS[i]); e=f*f*(3-2*f)
+        begin=SHOW.get('events',{}).get('heatOn',STARTS[i]) if i==2 else SHOW.get('events',{}).get('exhaustOn',STARTS[i]) if i==3 else STARTS[i]
+        f=max(0,(t-begin)/((STARTS+[DURATION])[i+1]-begin)); e=f*f*(3-2*f)
         before=TARGETS[max(0,i-1)]; after=TARGETS[i]
         vals=(state['values'] or [a+(b-a)*e for a,b in zip(before,after)]).copy()
         import math
@@ -73,8 +77,11 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.split('?')[0]=='/api/state':
             with lock: self.reply(snapshot())
-        elif self.path.split('?')[0]=='/film.mp4':
-            file=Path(self.directory)/'film.mp4';size=file.stat().st_size
+        elif self.path.split('?')[0] in ('/film.mp4','/assets/audio/theatre-voice.wav'):
+            relative=self.path.split('?')[0].lstrip('/')
+            file=Path(self.directory)/relative
+            if not file.is_file():return self.send_error(404)
+            size=file.stat().st_size
             start,end=0,size-1
             import re
             requested=self.headers.get('Range')
@@ -84,7 +91,7 @@ class Handler(SimpleHTTPRequestHandler):
                 start=int(match[1]);end=min(size-1,int(match[2]) if match[2] else size-1)
                 if start>end: return self.reply({'error':'invalid range'},416)
             self.send_response(206 if requested else 200)
-            self.send_header('Content-Type','video/mp4');self.send_header('Accept-Ranges','bytes')
+            self.send_header('Content-Type','audio/wav' if relative.endswith('.wav') else 'video/mp4');self.send_header('Accept-Ranges','bytes')
             self.send_header('Content-Length',str(end-start+1))
             if requested:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
             self.end_headers()

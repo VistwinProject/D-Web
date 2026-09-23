@@ -13,6 +13,10 @@ body.cinema .stage>video.on{visibility:visible;pointer-events:none}
 .chapter-number{font-size:3.2cqw;font-weight:500;line-height:1}.chapter>span{font-size:1.4cqw;color:#82939e}.chapter-name{font-size:1.8cqw;font-style:normal;letter-spacing:.06em;margin-left:auto;white-space:nowrap}
 .cinema-ui h1{position:absolute;left:2cqw;right:1cqw;top:18cqw;font-size:3.5cqw;line-height:1.35;font-weight:500;letter-spacing:-.03em;white-space:pre-line;margin:0}
 .narration{position:absolute;left:2cqw;right:3cqw;top:29cqw;font-size:1.5cqw;line-height:1.8;color:#a7b8c3;margin:0}
+.narration[data-speaker]{color:#edf4f7;font-size:1.45cqw;line-height:1.65}
+.narration[data-speaker]::before{content:attr(data-speaker);display:block;color:var(--state);font-size:1cqw;letter-spacing:.14em;margin-bottom:.35cqw}
+.voice-launcher{position:fixed;right:20px;bottom:20px;z-index:300;padding:12px 18px;border:1px solid #abcabb66;border-radius:8px;background:#0a171eeb;color:#e7f6ef;font:14px 'Chiron Hei HK',sans-serif;cursor:pointer;box-shadow:0 4px 24px #0008}
+.voice-launcher[aria-pressed=true]{opacity:.3}.voice-launcher:hover,.voice-launcher:focus-visible{opacity:1}
 .state-label{position:absolute;left:2cqw;top:39cqw;display:flex;align-items:center;gap:1cqw;color:var(--state);font-size:1.6cqw;letter-spacing:.07em}
 .state-label i{width:.65cqw;height:.65cqw;border-radius:50%;background:var(--state);box-shadow:0 0 1.2cqw var(--state)}
 .primary-metric{position:absolute;left:2cqw;right:2cqw;top:44cqw}

@@ -64,6 +64,8 @@ try{
 }catch(e){ui.querySelector('#modelStatus').textContent='此瀏覽器無法啟動 3D，請使用支援 WebGL 的瀏覽器';}
 function pin(id,point,visible){const el=ui.querySelector(id);el.hidden=!visible;if(!visible||!camera)return;const v=point.clone().project(camera);el.style.left=Math.max(8,Math.min(75,(v.x*.5+.5)*100))+'%';el.style.top=Math.max(8,Math.min(85,(-v.y*.5+.5)*100))+'%';}
 function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[];
+ const preparing=!!window.D_SHOW&&i===2&&t<window.D_SHOW.events.heatOn;
+ const awaitingExhaust=!!window.D_SHOW&&i===3&&t<window.D_SHOW.events.exhaustOn;
  const updateUI=i!==lastScene||performance.now()-lastUIUpdate>=150;
  if(updateUI){lastUIUpdate=performance.now();
  if(i!==lastScene){lastScene=i;stage.dataset.phase=i+1;stage.style.setProperty('--state',tones[i]);stage.style.setProperty('--wash',tones[i]+'20');ui.querySelectorAll('.chapter-number').forEach(e=>e.textContent=String(i+1).padStart(2,'0'));ui.querySelectorAll('.chapter-name').forEach(e=>e.textContent=names[i]);ui.querySelector('h1').textContent=titles[i];ui.querySelector('.narration').textContent=descriptions[i];ui.querySelector('.state-label span').textContent=states[i];ui.querySelector('.process-number').textContent=process[i][0];ui.querySelector('.scene-explanation h2').textContent=process[i][1];ui.querySelector('.scene-explanation p').textContent=process[i][2];if(glow)glow.color.set(tones[i]);}
@@ -73,15 +75,18 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  ui.querySelector('#primary-note').textContent=i===0?['呼吸累積 · 通風不足','裝潢與家具逸散','油煙與清潔用品揮發','高溫烹飪 · 煙霧','煎炒油煙 · 室外污染','灰塵 · 花粉'][introIndex]:i===2?'烹飪情境 · 最高模擬值 200':i===5?'本輪模擬下降 95%':'模擬濃度 · 隨展演情境變化';
  ui.querySelectorAll('[data-metric]').forEach(e=>{const k=+e.dataset.metric;e.textContent=k===1||k===2?Number(v[k]||0).toFixed(2):Math.round(v[k]||0);});
  stage.style.setProperty('--metric-state',i===0?tones[0]:Number(v[4])>35?tones[2]:tones[1]);
- ui.querySelector('#leftTime').textContent=`${Math.floor(t).toString().padStart(2,'0')} / 90 s`;
+ ui.querySelector('#leftTime').textContent=`${Math.floor(t).toString().padStart(2,'0')} / ${window.D_SHOW?.duration||90} s`;
  const pts=document.querySelector('#sparkLine').getAttribute('points');if(pts){const arr=pts.split(' ').map(s=>s.split(',').map(Number));const path=arr.map(([x,y],j)=>`${j?'L':'M'}${x*400/260},${y*65/40}`).join(' ');ui.querySelector('#history-line').setAttribute('d',path);ui.querySelector('#history-fill').setAttribute('d',path+'L400 65L0 65Z');}
  if(d.external){ui.querySelector('#primary-note').textContent='外部展演數據接管';if(i===5)ui.querySelector('.scene-explanation p').textContent='目前顯示外部輸入數值，不套用固定模擬淨化報告。';}
+ if(i===2){ui.querySelector('.state-label span').textContent=preparing?'準備晚餐 · 爐台待機':states[i];ui.querySelector('.scene-explanation h2').textContent=preparing?'晚餐即將開始':process[i][1];ui.querySelector('.scene-explanation p').textContent=preparing?'等媽媽準備烹飪，爐台才開始產生熱能。':process[i][2];}
+ if(i===3){ui.querySelector('.state-label span').textContent=awaitingExhaust?'污染提醒 · 準備排煙':states[i];ui.querySelector('.scene-explanation h2').textContent=awaitingExhaust?'切換排煙強檔':process[i][1];ui.querySelector('.scene-explanation p').textContent=awaitingExhaust?'污染指標升高，空氣管家發出提醒。':process[i][2];}
  }
  if(!renderer||!smoke)return;
  // All positions derive from the shared exhibition clock, not random frame state.
- const arr=smokeGeo.attributes.position.array;smoke.visible=i!==1;smoke.material.opacity=i===0?.6:i===2?1:i===3?.95:i===4?.55:.3*(1-p);
- for(let k=0;k<smokeCount;k++){const f=(t*.22+hash(k+41))%1,a=hash(k+713)*Math.PI*2,spread=(i===3?.4*(1-f):.06+f*.95)*Math.sqrt(hash(k+313));
- arr[k*3]=origin.x+Math.cos(a)*spread;arr[k*3+1]=origin.y+f*(i===3?1.27:1.55);arr[k*3+2]=origin.z+Math.sin(a)*spread+(i===2?f*.55:0);}
+ const arr=smokeGeo.attributes.position.array;smoke.visible=i!==1&&!(window.D_SHOW&&i===2&&t<window.D_SHOW.events.heatOn);smoke.material.opacity=i===0?.6:i===2?1:i===3?.95:i===4?.55:.3*(1-p);
+ const exhausting=i===3&&!awaitingExhaust;
+ for(let k=0;k<smokeCount;k++){const f=(t*.22+hash(k+41))%1,a=hash(k+713)*Math.PI*2,spread=(exhausting?.4*(1-f):.06+f*.95)*Math.sqrt(hash(k+313));
+ arr[k*3]=origin.x+Math.cos(a)*spread;arr[k*3+1]=origin.y+f*(exhausting?1.27:1.55);arr[k*3+2]=origin.z+Math.sin(a)*spread+(i===2||awaitingExhaust?f*.55:0);}
  smokeGeo.attributes.position.needsUpdate=true;
  fresh.visible=i===1||i>=4;fresh.material.opacity=i===5?.65+.35*(1-p):1;
  const fp=freshGeo.attributes.position.array;for(let k=0;k<freshCount;k++){const f=(t*.18+hash(k+981))%1;fp[k*3]=inlet.x+f*2.9;fp[k*3+1]=inlet.y+Math.sin(f*Math.PI)*.28+Math.sin(k)*.1;fp[k*3+2]=inlet.z+f*1.5+Math.cos(k)*.1;}freshGeo.attributes.position.needsUpdate=true;
