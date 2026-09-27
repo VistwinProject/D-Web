@@ -75,7 +75,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.split('?')[0]=='/api/state':
             with lock: self.reply(snapshot())
-        elif self.path.split('?')[0] in ('/film.mp4','/assets/audio/theatre-voice.wav','/assets/audio/theatre-mix.wav'):
+        elif self.path.split('?')[0] in ('/film.mp4','/assets/audio/theatre-voice.wav','/assets/audio/theatre-mix.wav','/assets/audio/theatre-mix.mp3'):
             relative=self.path.split('?')[0].lstrip('/')
             file=Path(self.directory)/relative
             if not file.is_file():return self.send_error(404)
@@ -89,7 +89,7 @@ class Handler(SimpleHTTPRequestHandler):
                 start=int(match[1]);end=min(size-1,int(match[2]) if match[2] else size-1)
                 if start>end: return self.reply({'error':'invalid range'},416)
             self.send_response(206 if requested else 200)
-            self.send_header('Content-Type','audio/wav' if relative.endswith('.wav') else 'video/mp4');self.send_header('Accept-Ranges','bytes')
+            self.send_header('Content-Type','audio/wav' if relative.endswith('.wav') else 'audio/mpeg' if relative.endswith('.mp3') else 'video/mp4');self.send_header('Accept-Ranges','bytes')
             self.send_header('Content-Length',str(end-start+1))
             if requested:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
             self.end_headers()

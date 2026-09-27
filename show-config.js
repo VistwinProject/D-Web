@@ -16,7 +16,7 @@ window.D_SHOW = {
     "exhaustOn": 87.003,
     "freshOn": 93.232
   },
-  "audio": "assets/audio/theatre-mix.wav",
+  "audio": "assets/audio/theatre-mix.mp3?v=d9077336b8",
   "clips": [
     {
       "id": "d00-intro",
@@ -174,5 +174,6 @@ window.D_SHOW = {
       "end": 135.007,
       "file": "assets/audio/sfx/ventilation.wav"
     }
-  ]
+  ],
+  "audioFallback": "assets/audio/theatre-mix.wav"
 };

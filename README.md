@@ -102,3 +102,6 @@ IH 預設跟隨劇場六段。01 紫色待機、02 綠色偵測、03 紅色加�
 驗證：`node --test tools/test_film_sync.mjs`，包含緩衝、跳段、末幀保持及有限重試。
 
 慢速串流不再為追上劇場時鐘反覆跳轉；只在手動切章節或重播時定位，影片可延後播完並停留末幀，語音、字幕與 3D 的 135 秒時間軸維持不變。
+
+
+2026-09-28 語音載入：Pages 使用 96 kbps MP3（約 1.62 MB），保留 8.64 MB WAV 母帶作失敗備援，語音預設開啟且只播一次。僅將 NotAllowedError 視為自動播放被阻擋，忽略跳轉／暫停造成的 AbortError，緩衝中不重複 seek 尚未下載的音訊。靜音 QA 不再取得跨頁語音優先權。重建若有 ffmpeg 或 FFMPEG_BINARY 會同步輸出 MP3，否則安全使用新生成的 WAV；也可執行 python tools/build_web_audio.py --ffmpeg <ffmpeg-path> 更新壓縮檔及設定。
