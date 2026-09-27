@@ -1,33 +1,53 @@
-import bpy,bmesh,math,json
+"""Export the actual kitchen bay (worktop, sink and cabinets) from the supplied 3DS.
+Usage: python tools/export_kitchen.py --source path/to/0820_寶舖大安基地.3ds
+Requires numpy, trimesh, scipy, shapely. The source is read-only.
+See assets/kitchen-source.json for coordinates and source fingerprint.
+"""
+import struct,json
 from pathlib import Path
-from mathutils import Vector
-ROOT=Path(__file__).resolve().parent.parent
-bpy.ops.wm.open_mainfile(filepath=str(ROOT/'assets/source-scene.blend'))
-# Kitchen bay to the right of the living room, above the adjoining bedroom.
-BOUNDS=(1200,1585,940,1220)
-count=0
-for ob in list(bpy.context.scene.objects):
- if ob.type!='MESH':continue
- bm=bmesh.new();bm.from_mesh(ob.data)
- for axis,limit,positive in [(0,BOUNDS[0],False),(0,BOUNDS[1],True),(1,BOUNDS[2],False),(1,BOUNDS[3],True),(2,245,True)]:
-  point=Vector((0,0,0));point[axis]=limit;normal=Vector((0,0,0));normal[axis]=1
-  if bm.verts:bmesh.ops.bisect_plane(bm,geom=list(bm.verts)+list(bm.edges)+list(bm.faces),dist=.001,plane_co=point,plane_no=normal,clear_outer=positive,clear_inner=not positive)
- if not bm.faces:bm.free();bpy.data.objects.remove(ob,do_unlink=True);continue
- # Cut away tall perimeter walls for an exhibition dollhouse view.
- remove=[f for f in bm.faces if min(v.co.z for v in f.verts)>225]
- bmesh.ops.delete(bm,geom=remove,context='FACES')
- bm.to_mesh(ob.data);bm.free();count+=1
- # Centre locally and use metres.
- for v in ob.data.vertices:v.co=Vector(((v.co.x-1400)/100,(v.co.y-1080)/100,v.co.z/100))
- ob.data.update()
-scene=bpy.context.scene
-scene.render.engine='BLENDER_WORKBENCH';scene.display.shading.light='STUDIO';scene.display.shading.color_type='MATERIAL';scene.display.shading.show_shadows=True;scene.display.shading.show_cavity=True
-scene.render.resolution_x=1000;scene.render.resolution_y=1000;scene.render.resolution_percentage=100
-bpy.ops.object.camera_add(location=(-5,-6,6));cam=bpy.context.object;target=Vector((0,0,1));cam.rotation_euler=(target-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.type='ORTHO';cam.data.ortho_scale=7;scene.camera=cam
-scene.render.filepath=str(ROOT/'assets/kitchen-review.png');bpy.ops.render.render(write_still=True)
-bpy.data.objects.remove(cam,do_unlink=True)
-for im in bpy.data.images:
- if im.size[0]>1024 or im.size[1]>1024:
-  ratio=1024/max(im.size);im.scale(max(1,int(im.size[0]*ratio)),max(1,int(im.size[1]*ratio)))
-bpy.ops.export_scene.gltf(filepath=str(ROOT/'assets/kitchen.glb'),export_format='GLB',export_cameras=False,export_lights=False)
-print('KITCHEN',count,flush=True)
+import numpy as np,trimesh
+import argparse
+parser=argparse.ArgumentParser();parser.add_argument('--source',type=Path,required=True);args=parser.parse_args()
+b=args.source.read_bytes();objects=[]
+def chunks(s,e):
+ while s+6<=e:
+  k,n=struct.unpack_from('<HI',b,s)
+  if n<6:break
+  yield k,s+6,s+n
+  s+=n
+def string(s):
+ e=b.index(0,s);return b[s:e].decode('cp950',errors='replace'),e+1
+def visit(s,e):
+ for k,a,z in chunks(s,e):
+  if k in (0x4d4d,0x3d3d):visit(a,z)
+  elif k==0x4000:
+   name,x=string(a)
+   for t,x,y in chunks(x,z):
+    if t!=0x4100:continue
+    verts=faces=None;mats=[]
+    for typ,p,q in chunks(x,y):
+     if typ==0x4110:
+      n=struct.unpack_from('<H',b,p)[0];verts=np.frombuffer(b,dtype='<f4',count=n*3,offset=p+2).reshape(-1,3).copy()
+     elif typ==0x4120:
+      n=struct.unpack_from('<H',b,p)[0];faces=np.frombuffer(b,dtype='<u2',count=n*4,offset=p+2).reshape(-1,4)[:,:3].copy()
+      for ft,fa,fz in chunks(p+2+n*8,q):
+       if ft==0x4130:mats.append(string(fa)[0])
+    if verts is not None and faces is not None:objects.append((name,verts,faces,mats))
+visit(0,len(b))
+scene=trimesh.Scene()
+lo=np.array([1290,789,0]);hi=np.array([1585,930,245])
+excluded={'Group286','Group296','Group597','Group687','Group712','Group753','Group759','Plane04_01','Plane04_02','Plane04_03'}
+for name,v,f,m in objects:
+ if name in excluded or np.any(v.max(0)<lo) or np.any(v.min(0)>hi):continue
+ mesh=trimesh.Trimesh(v,f,process=False)
+ for axis in range(3):
+  for limit,sign in [(lo[axis],1),(hi[axis],-1)]:
+   point=np.zeros(3);point[axis]=limit;normal=np.zeros(3);normal[axis]=sign
+   mesh=mesh.slice_plane(point,normal,cap=False)
+   if not len(mesh.faces):break
+  if not len(mesh.faces):break
+ if not len(mesh.faces):continue
+ v=mesh.vertices;mesh.vertices=np.column_stack(((v[:,0]-1400)/100,v[:,2]/100,-(v[:,1]-780)/100));mesh.remove_unreferenced_vertices();scene.add_geometry(mesh,node_name=name,geom_name=name)
+output=Path(__file__).resolve().parents[1]/'assets/kitchen.glb'
+scene.export(output)
+print(f'Exported {len(scene.geometry)} kitchen meshes to {output}')

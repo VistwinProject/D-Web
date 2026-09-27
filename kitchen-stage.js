@@ -3,7 +3,8 @@ import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {focusEmphasis} from './focus-emphasis.mjs';
 import {equipmentAppearance} from './equipment-appearance.mjs';
 import {smokeParticle} from './smoke-particles.mjs';
-import {kitchenShots,cameraPose} from './camera-shots.mjs?v=continuous-10';
+import {kitchenShots,cameraPose} from './camera-shots.mjs?v=kitchen-15';
+import {kitchenLayout} from './kitchen-layout.mjs';
 import {mergeGeometries} from './vendor/utils/BufferGeometryUtils.js';
 if(window.theaterActive) {
 const stage=document.querySelector('.stage');document.body.classList.add('cinema');
@@ -22,7 +23,7 @@ const viewport=ui.querySelector('#kitchen-viewport');
 let renderer,scene,camera,room,glow,hoodLight,smoke,smokeGeo,fresh,freshGeo;
 const ihLines=[],hoodLines=[],ihRings=[],freshLines=[];
 const neutralEquipment=new THREE.Color(0x8da5ac),warmIH=new THREE.Color(0xffa24d),hotIH=new THREE.Color(0xff493e),activeHood=new THREE.Color(0x62e89c);
-const origin=new THREE.Vector3(-.6,.85,1.05),exhaust=new THREE.Vector3(-.6,1.72,1.05),inlet=new THREE.Vector3(-1.6,1.9,-.5);
+const origin=new THREE.Vector3(...kitchenLayout.stove),exhaust=new THREE.Vector3(...kitchenLayout.hood),inlet=new THREE.Vector3(...kitchenLayout.fresh);
 const smokeCount=90,freshCount=55;
 const hash=n=>{const v=Math.sin(n*127.1)*43758.5453;return v-Math.floor(v);};
 let current={time:0,scene:0,progress:0,values:[480,.03,.2,8,10,20]},lastScene=-1;
@@ -39,7 +40,7 @@ function updateCamera(time){
  if(!cameraShots||!camera)return;
  const pose=cameraPose(cameraShots,time,cameraMotionPreference.matches),bounds=cameraBounds;
  const center=bounds.getCenter(new THREE.Vector3()),target=new THREE.Vector3().fromArray(pose.target);
- const direction=new THREE.Vector3(-1,1,1).normalize();
+ const direction=new THREE.Vector3(...kitchenLayout.viewDirection).normalize();
  const right=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),direction).normalize();
  const up=new THREE.Vector3().crossVectors(direction,right).normalize();
  const aspect=Math.max(.1,viewport.clientWidth/Math.max(1,viewport.clientHeight));
@@ -51,7 +52,7 @@ function updateCamera(time){
  const half=Math.max(halfHeight,halfWidth/aspect)*1.04;
  camera.left=-half*aspect;camera.right=half*aspect;camera.top=half;camera.bottom=-half;
  camera.position.copy(target).addScaledVector(direction,15);camera.lookAt(target);
- camera.zoom=1.08*pose.zoom;camera.updateProjectionMatrix();camera.updateMatrixWorld();viewport.dataset.cameraShot=pose.shot;viewport.dataset.cameraProjection='isometric';
+ camera.zoom=1+(pose.zoom-1)*.5;camera.updateProjectionMatrix();camera.updateMatrixWorld();viewport.dataset.cameraShot=pose.shot;viewport.dataset.cameraProjection='isometric';
 }
 function pointTexture(){const c=document.createElement('canvas');c.width=c.height=64;const ctx=c.getContext('2d'),g=ctx.createRadialGradient(32,32,1,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.3,'rgba(255,255,255,1)');g.addColorStop(.55,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
 const renderKitchen=new URLSearchParams(location.search).get('side')!=='left';
@@ -63,14 +64,14 @@ try{
  camera.position.set(-5.1,4.6,6.8);camera.lookAt(.05,1.0,0);
  const ambient=new THREE.HemisphereLight(0xddefff,0x61554b,.7);scene.add(ambient);
  const key=new THREE.DirectionalLight(0xffedda,1.8);key.position.set(-3,7,4);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;key.shadow.normalBias=.015;scene.add(key);
- glow=new THREE.PointLight(tones[0],9,5,2);glow.position.set(-.6,1.2,1.05);scene.add(glow);
- hoodLight=new THREE.PointLight(0xffe5b8,.5,2);hoodLight.position.set(-.6,1.55,1.05);scene.add(hoodLight);
+ glow=new THREE.PointLight(tones[0],9,5,2);glow.position.copy(origin).add(new THREE.Vector3(0,.35,0));scene.add(glow);
+ hoodLight=new THREE.PointLight(0xffe5b8,.5,2);hoodLight.position.copy(exhaust);scene.add(hoodLight);
  const metal=new THREE.MeshBasicMaterial({color:0x95bccb,transparent:true,opacity:.10,depthWrite:false,side:THREE.DoubleSide});
  const glass=new THREE.MeshBasicMaterial({color:0x8da9bc,transparent:true,opacity:.08,depthWrite:false,side:THREE.DoubleSide});
- const ih=box(.59,.025,.46,glass,-.6,.815,1.05);ihLines.push(ih.children[0].material);
- for(const dx of [-.16,.16]){const ring=new THREE.Mesh(new THREE.TorusGeometry(.09,.004,8,48),new THREE.MeshBasicMaterial({color:0xc1d4da,transparent:true,opacity:.65}));ring.rotation.x=-Math.PI/2;ring.position.set(-.6+dx,.832,1.05);scene.add(ring);ihRings.push(ring.material);}
- const pot=new THREE.Mesh(new THREE.CylinderGeometry(.095,.08,.075,48),metal);pot.position.set(-.76,.87,1.05);pot.castShadow=true;scene.add(pot);const potWire=new THREE.LineSegments(new THREE.EdgesGeometry(pot.geometry,35),new THREE.LineBasicMaterial({color:0x8da5ac,transparent:true,opacity:.4}));pot.add(potWire);ihLines.push(potWire.material);
- for(const hoodPart of [box(.74,.075,.55,metal,-.6,1.72,1.05),box(.25,.4,.2,metal,-.6,1.955,.9),box(.61,.008,.4,glass,-.6,1.678,1.05)])hoodLines.push(hoodPart.children[0].material);
+ const ih=box(.59,.025,.46,glass,origin.x,.913,origin.z);ihLines.push(ih.children[0].material);
+ for(const dx of [-.16,.16]){const ring=new THREE.Mesh(new THREE.TorusGeometry(.09,.004,8,48),new THREE.MeshBasicMaterial({color:0xc1d4da,transparent:true,opacity:.65}));ring.rotation.x=-Math.PI/2;ring.position.set(origin.x+dx,.93,origin.z);scene.add(ring);ihRings.push(ring.material);}
+ const pot=new THREE.Mesh(new THREE.CylinderGeometry(.095,.08,.075,48),metal);pot.position.set(origin.x-.16,.97,origin.z);pot.castShadow=true;scene.add(pot);const potWire=new THREE.LineSegments(new THREE.EdgesGeometry(pot.geometry,35),new THREE.LineBasicMaterial({color:0x8da5ac,transparent:true,opacity:.4}));pot.add(potWire);ihLines.push(potWire.material);
+ for(const hoodPart of [box(.74,.075,.55,metal,exhaust.x,exhaust.y,exhaust.z),box(.61,.008,.4,glass,exhaust.x,exhaust.y-.042,exhaust.z)])hoodLines.push(hoodPart.children[0].material);
  const freshFrame=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.36,.13,.12)),new THREE.LineBasicMaterial({color:0x62e89c,transparent:true,opacity:.4}));freshFrame.position.copy(inlet);scene.add(freshFrame);freshLines.push(freshFrame.material);
  const texture=pointTexture();smokeGeo=new THREE.BufferGeometry();smokeGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(smokeCount*3),3));
  smoke=new THREE.Points(smokeGeo,new THREE.PointsMaterial({map:texture,color:0xff4036,size:.36,transparent:true,opacity:.95,depthWrite:false,depthTest:false,toneMapped:false}));smoke.renderOrder=5;scene.add(smoke);
@@ -81,9 +82,23 @@ try{
  };
  smoke.material.customProgramCacheKey=()=> 'smoke-fade-1';
  freshGeo=new THREE.BufferGeometry();freshGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(freshCount*3),3));fresh=new THREE.Points(freshGeo,new THREE.PointsMaterial({map:texture,color:0x32ef82,size:.28,transparent:true,opacity:1,depthWrite:false,depthTest:false,toneMapped:false}));fresh.renderOrder=6;fresh.frustumCulled=false;smoke.frustumCulled=false;scene.add(fresh);
- // Mesh305 is the oblique perimeter panel behind the kitchen, clipped from the adjoining bay.
- // Omit it from this cutaway view without changing the original asset.
- new GLTFLoader().load('assets/kitchen.glb',g=>{g.scene.updateMatrixWorld(true);const batches=new Map();room=new THREE.Group();g.scene.traverse(o=>{if(o.isMesh&&o.name!=='Mesh305'){const geo=o.geometry.clone().applyMatrix4(o.matrixWorld);const key=Object.keys(geo.attributes).sort().join(',');if(!batches.has(key))batches.set(key,[]);batches.get(key).push(geo);}});const surface=new THREE.MeshBasicMaterial({color:0xa8bdc5,transparent:true,opacity:.028,depthWrite:false,side:THREE.DoubleSide});const outline=new THREE.LineBasicMaterial({color:0xb3c7cf,transparent:true,opacity:.4,depthWrite:false});for(const geos of batches.values()){const geometry=mergeGeometries(geos,false);room.add(new THREE.Mesh(geometry,surface));room.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry,35),outline));}scene.add(room);fitCamera();ui.querySelector('#modelStatus').hidden=true;viewport.dataset.ready='true';},undefined,()=>{ui.querySelector('#modelStatus').textContent='模型載入失敗 · 請重新整理';});
+ // Correct source kitchen bay, excluding the former dining/storage crop.
+ const kitchenFurniture=new Set(['Group280','Group282','Group283','Group284','Group628','Mesh164','Mesh165','Mesh166','Mesh167','Mesh168','Mesh169','Mesh170','Mesh171','Componen55']);
+ new GLTFLoader().load('assets/kitchen.glb?v=correct-kitchen-16',g=>{
+  g.scene.updateMatrixWorld(true);const batches=new Map();room=new THREE.Group();
+  g.scene.traverse(o=>{if(o.isMesh){
+   const geo=o.geometry.clone().applyMatrix4(o.matrixWorld),detail=kitchenFurniture.has(o.name);
+   const key=(detail?'detail:':'shell:')+Object.keys(geo.attributes).sort().join(',');
+   if(!batches.has(key))batches.set(key,{detail,geos:[]});batches.get(key).geos.push(geo);
+  }});
+  for(const {detail,geos} of batches.values()){
+   const geometry=mergeGeometries(geos,false);
+   const surface=new THREE.MeshBasicMaterial({color:0xa8bdc5,transparent:true,opacity:detail?.028:.008,depthWrite:false,side:THREE.DoubleSide});
+   const outline=new THREE.LineBasicMaterial({color:0xb3c7cf,transparent:true,opacity:detail?.58:.16,depthWrite:false});
+   room.add(new THREE.Mesh(geometry,surface));room.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry,35),outline));
+  }
+  scene.add(room);fitCamera();ui.querySelector('#modelStatus').hidden=true;viewport.dataset.ready='true';viewport.dataset.modelRegion='source-kitchen';
+ },undefined,()=>{ui.querySelector('#modelStatus').textContent='模型載入失敗 · 請重新整理';});
  new ResizeObserver(()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(w&&h){let ratio=1;if(new URLSearchParams(location.search).get('preview')==='1'&&window.parent!==window){try{ratio=Math.min(1,window.parent.document.querySelector('main').clientWidth/2160*devicePixelRatio);}catch{}}renderer.setPixelRatio(Math.max(.25,ratio));renderer.setSize(w,h);fitCamera();}}).observe(viewport);
  }
 }catch(e){ui.querySelector('#modelStatus').textContent='此瀏覽器無法啟動 3D，請使用支援 WebGL 的瀏覽器';}
@@ -118,12 +133,13 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  smoke.material.opacity=i===0?.6:i===2?1:i===3?.95:.55;
  const exhausting=i===3&&!awaitingExhaust;
  for(let k=0;k<smokeCount;k++){const point=smokeParticle(k,t,{purificationStart,exhausting,drifting:i===2||awaitingExhaust});
- arr[k*3]=origin.x+point.x;arr[k*3+1]=origin.y+point.y;arr[k*3+2]=origin.z+point.z;alphas[k]=point.alpha;}
+ const intake=point.y/1.27;
+ arr[k*3]=origin.x+point.x;arr[k*3+1]=origin.y+(exhausting?intake*(exhaust.y-origin.y):point.y);arr[k*3+2]=origin.z+(exhausting?point.z+(exhaust.z-origin.z)*intake:-point.z);alphas[k]=point.alpha*(exhausting?1-Math.max(0,(intake-.8)/.2):1);}
  smokeGeo.attributes.position.needsUpdate=true;
  smokeGeo.attributes.particleAlpha.needsUpdate=true;
  viewport.dataset.smokeEmitting=String(smoke.visible&&!clearing);viewport.dataset.smokeRemaining=String(Array.from(alphas).filter(a=>a>.001).length);
  fresh.visible=i===1||i>=4;fresh.material.opacity=i===5?.65+.35*(1-p):1;
- const fp=freshGeo.attributes.position.array;for(let k=0;k<freshCount;k++){const f=(t*.18+hash(k+981))%1;fp[k*3]=inlet.x+f*2.9;fp[k*3+1]=inlet.y+Math.sin(f*Math.PI)*.28+Math.sin(k)*.1;fp[k*3+2]=inlet.z+f*1.5+Math.cos(k)*.1;}freshGeo.attributes.position.needsUpdate=true;
+ const fp=freshGeo.attributes.position.array;for(let k=0;k<freshCount;k++){const f=(t*.18+hash(k+981))%1;fp[k*3]=inlet.x+f*1.7;fp[k*3+1]=inlet.y+Math.sin(f*Math.PI)*.28+Math.sin(k)*.1;fp[k*3+2]=inlet.z-f*.4+Math.cos(k)*.1;}freshGeo.attributes.position.needsUpdate=true;
  glow.intensity=i===2?1+p*2:i===3?2:i===4?2:1;
  const appearance=equipmentAppearance(t,window.D_SHOW.events,window.D_SHOW.duration);
  const {weights,pulse}=cameraShots?focusEmphasis(cameraShots,t,cameraMotionPreference.matches):{weights:{},pulse:1};
@@ -134,6 +150,9 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  for(const material of freshLines)material.opacity=.35+.6*(weights.fresh||0)*pulse;
  viewport.dataset.ihHeat=appearance.heatLevel.toFixed(3);viewport.dataset.hoodActive=appearance.hoodLevel.toFixed(3);
  updateCamera(t);
+ // Orthographic cameras do not apply distance attenuation to point sprites.
+ const pixelsPerMetre=viewport.clientHeight*camera.zoom/(camera.top-camera.bottom);
+ smoke.material.size=.10*pixelsPerMetre;fresh.material.size=.08*pixelsPerMetre;
  pin('#hobPin',origin,i===2);pin('#hoodPin',exhaust,i===3);pin('#freshPin',inlet,i===4);
  renderer.render(scene,camera);
 }

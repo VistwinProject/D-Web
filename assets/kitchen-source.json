@@ -1,0 +1,40 @@
+{
+  "source": "0820_寶舖大安基地.3ds",
+  "sha256": "a4cf0600d7147dd3b6c22c17169d6a4905415c1e77737c801911a4374700d22b",
+  "cropCm": {
+    "x": [
+      1290,
+      1585
+    ],
+    "y": [
+      789,
+      930
+    ],
+    "z": [
+      0,
+      245
+    ]
+  },
+  "originCm": [
+    1400,
+    780,
+    0
+  ],
+  "meshes": 41,
+  "worktopSource": "Group283",
+  "upperCabinetSource": "Group284",
+  "sinkSource": "Mesh164",
+  "note": "Correct kitchen bay, below former dining/storage crop in source plan. IH and under-cabinet extraction overlay are exhibition illustrations.",
+  "excludedAdjacentFragments": [
+    "Group286",
+    "Group296",
+    "Group597",
+    "Group687",
+    "Group712",
+    "Group753",
+    "Group759",
+    "Plane04_01",
+    "Plane04_02",
+    "Plane04_03"
+  ]
+}

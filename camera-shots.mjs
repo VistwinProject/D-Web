@@ -1,6 +1,7 @@
+import {kitchenLayout} from './kitchen-layout.mjs';
 import {cameraPose} from './camera-timeline.mjs';
 export function kitchenShots(center,events,duration=128){
- const stove=[-.6,.88,1.05],hood=[-.6,1.73,1.05],fresh=[-1.6,1.9,-.5];
+ const {stove,hood,fresh}=kitchenLayout;
  const shot=(time,name,target,zoom=1)=>({time,name,target,zoom,focus:name.includes("IH")?"ih":name.includes("抽油煙機")?"hood":name.includes("新風入口")?"fresh":null,yaw:0,pitch:0});
  return [
  shot(0,'廚房全景',center),shot(events.heatOn-1.4,'廚房全景',center),
