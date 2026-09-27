@@ -1,5 +1,5 @@
 {
-  "version": "2026-09-28-continuous",
+  "version": "2026-09-28-voiced-exit",
   "provider": "VoAI Neo",
   "clips": [
     {
@@ -92,6 +92,13 @@
       "role": "旁白",
       "voice": "怡婷",
       "text": "烹飪結束後，淨化仍持續進行。從負壓防護、正壓守護，到持續淨化，我們觀察變化，也確認處置結果。因為每一口呼吸、每一位家人，都值得被好好照顧。"
+    },
+    {
+      "id": "d07-farewell",
+      "scene": 6,
+      "role": "旁白",
+      "voice": "怡婷",
+      "text": "居家風險劇場在此告一段落，請前往下一展區。"
     }
   ],
   "source": "https://docs.google.com/spreadsheets/d/1lDwTDabzXUNeCuDOyH50qU-UIfJFONvv/edit?gid=306553155"

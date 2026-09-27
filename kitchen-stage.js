@@ -39,17 +39,19 @@ function updateCamera(time){
  if(!cameraShots||!camera)return;
  const pose=cameraPose(cameraShots,time,cameraMotionPreference.matches),bounds=cameraBounds;
  const center=bounds.getCenter(new THREE.Vector3()),target=new THREE.Vector3().fromArray(pose.target);
- const direction=new THREE.Vector3(-.53,.38+pose.pitch,.74).applyAxisAngle(new THREE.Vector3(0,1,0),pose.yaw).normalize();
+ const direction=new THREE.Vector3(-1,1,1).normalize();
  const right=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),direction).normalize();
  const up=new THREE.Vector3().crossVectors(direction,right).normalize();
- const tanV=Math.tan(THREE.MathUtils.degToRad(camera.fov)/2),tanH=tanV*camera.aspect;
- let distance=0;
+ const aspect=Math.max(.1,viewport.clientWidth/Math.max(1,viewport.clientHeight));
+ let halfWidth=0,halfHeight=0;
  for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])for(const z of [bounds.min.z,bounds.max.z]){
-  const point=new THREE.Vector3(x,y,z).sub(center),depth=point.dot(direction);
-  distance=Math.max(distance,depth+Math.abs(point.dot(right))/tanH,depth+Math.abs(point.dot(up))/tanV);
+  const point=new THREE.Vector3(x,y,z).sub(center);
+  halfWidth=Math.max(halfWidth,Math.abs(point.dot(right)));halfHeight=Math.max(halfHeight,Math.abs(point.dot(up)));
  }
- camera.position.copy(target).addScaledVector(direction,distance*1.04);camera.lookAt(target);
- camera.zoom=1.4*pose.zoom;camera.updateProjectionMatrix();camera.updateMatrixWorld();viewport.dataset.cameraShot=pose.shot;
+ const half=Math.max(halfHeight,halfWidth/aspect)*1.04;
+ camera.left=-half*aspect;camera.right=half*aspect;camera.top=half;camera.bottom=-half;
+ camera.position.copy(target).addScaledVector(direction,15);camera.lookAt(target);
+ camera.zoom=1.08*pose.zoom;camera.updateProjectionMatrix();camera.updateMatrixWorld();viewport.dataset.cameraShot=pose.shot;viewport.dataset.cameraProjection='isometric';
 }
 function pointTexture(){const c=document.createElement('canvas');c.width=c.height=64;const ctx=c.getContext('2d'),g=ctx.createRadialGradient(32,32,1,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.3,'rgba(255,255,255,1)');g.addColorStop(.55,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
 const renderKitchen=new URLSearchParams(location.search).get('side')!=='left';
@@ -57,7 +59,7 @@ let lastUIUpdate=-Infinity;
 try{
  if(renderKitchen){
  renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.85;renderer.shadowMap.enabled=false;
- viewport.prepend(renderer.domElement);scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(36,1,.05,60);
+ viewport.prepend(renderer.domElement);scene=new THREE.Scene();camera=new THREE.OrthographicCamera(-4,4,4,-4,.05,60);
  camera.position.set(-5.1,4.6,6.8);camera.lookAt(.05,1.0,0);
  const ambient=new THREE.HemisphereLight(0xddefff,0x61554b,.7);scene.add(ambient);
  const key=new THREE.DirectionalLight(0xffedda,1.8);key.position.set(-3,7,4);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;key.shadow.normalBias=.015;scene.add(key);
@@ -82,7 +84,7 @@ try{
  // Mesh305 is the oblique perimeter panel behind the kitchen, clipped from the adjoining bay.
  // Omit it from this cutaway view without changing the original asset.
  new GLTFLoader().load('assets/kitchen.glb',g=>{g.scene.updateMatrixWorld(true);const batches=new Map();room=new THREE.Group();g.scene.traverse(o=>{if(o.isMesh&&o.name!=='Mesh305'){const geo=o.geometry.clone().applyMatrix4(o.matrixWorld);const key=Object.keys(geo.attributes).sort().join(',');if(!batches.has(key))batches.set(key,[]);batches.get(key).push(geo);}});const surface=new THREE.MeshBasicMaterial({color:0xa8bdc5,transparent:true,opacity:.028,depthWrite:false,side:THREE.DoubleSide});const outline=new THREE.LineBasicMaterial({color:0xb3c7cf,transparent:true,opacity:.4,depthWrite:false});for(const geos of batches.values()){const geometry=mergeGeometries(geos,false);room.add(new THREE.Mesh(geometry,surface));room.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry,35),outline));}scene.add(room);fitCamera();ui.querySelector('#modelStatus').hidden=true;viewport.dataset.ready='true';},undefined,()=>{ui.querySelector('#modelStatus').textContent='模型載入失敗 · 請重新整理';});
- new ResizeObserver(()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(w&&h){let ratio=1;if(new URLSearchParams(location.search).get('preview')==='1'&&window.parent!==window){try{ratio=Math.min(1,window.parent.document.querySelector('main').clientWidth/2160*devicePixelRatio);}catch{}}renderer.setPixelRatio(Math.max(.25,ratio));renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();fitCamera();}}).observe(viewport);
+ new ResizeObserver(()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(w&&h){let ratio=1;if(new URLSearchParams(location.search).get('preview')==='1'&&window.parent!==window){try{ratio=Math.min(1,window.parent.document.querySelector('main').clientWidth/2160*devicePixelRatio);}catch{}}renderer.setPixelRatio(Math.max(.25,ratio));renderer.setSize(w,h);fitCamera();}}).observe(viewport);
  }
 }catch(e){ui.querySelector('#modelStatus').textContent='此瀏覽器無法啟動 3D，請使用支援 WebGL 的瀏覽器';}
 function pin(id,point,visible){const el=ui.querySelector(id);el.hidden=!visible;if(!visible||!camera)return;const v=point.clone().project(camera);el.style.left=Math.max(8,Math.min(75,(v.x*.5+.5)*100))+'%';el.style.top=Math.max(8,Math.min(85,(-v.y*.5+.5)*100))+'%';}

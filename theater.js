@@ -105,7 +105,6 @@ function frame(now){let t=time();if(!endpoint&&mode==='wait'&&t>=(starts[idx(pos
  else{x=75+(k*73%420);y=170+drift*75+Math.sin(t*.4+k)*10;alpha=i===0?.45:.12;}
  c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('opacity',alpha);c.setAttribute('r',i===2?2.5:1.8);});
  }
- if(document.body.classList.contains('cinema'))filmV.style.opacity='.42';
  requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 })();

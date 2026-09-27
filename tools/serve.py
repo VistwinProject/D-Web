@@ -75,7 +75,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.split('?')[0]=='/api/state':
             with lock: self.reply(snapshot())
-        elif self.path.split('?')[0] in ('/film.mp4','/assets/audio/theatre-voice.wav','/assets/audio/theatre-mix.wav','/assets/audio/theatre-mix.mp3'):
+        elif self.path.split('?')[0] in ('/film.mp4','/assets/film/pollution-red.mp4','/assets/film/negative-pressure.mp4','/assets/film/purification-green.mp4','/assets/audio/theatre-voice.wav','/assets/audio/theatre-mix.wav','/assets/audio/theatre-mix.mp3'):
             relative=self.path.split('?')[0].lstrip('/')
             file=Path(self.directory)/relative
             if not file.is_file():return self.send_error(404)

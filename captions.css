@@ -36,3 +36,7 @@
 .is-on .heat-wave,.is-on .air-stream{opacity:var(--pulse,1)}
 .cinema-ui #kitchen-viewport{top:24cqw;height:54cqw}
 @media(prefers-reduced-motion:reduce){.subtitle-content{will-change:auto}.machine-icon .rotor{transform:none}.heat-wave,.air-stream{opacity:1!important}}
+
+/* Hold the exit message after speech and at the stopped final frame. */
+.cinema-ui .narration.is-closing .speaker-line{display:none}
+.cinema-ui .narration.is-closing .subtitle-content{padding-top:1.5cqw}

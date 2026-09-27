@@ -22,8 +22,8 @@ html[data-cinema-status="error"] .cinema-startup span::after{content:'載入失�
 </style>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="theater.css">
-<link rel="stylesheet" href="cinema.css?v=stream-1">
-<link rel="stylesheet" href="captions.css?v=slow-1">
+<link rel="stylesheet" href="cinema.css?v=dissolve-2">
+<link rel="stylesheet" href="captions.css?v=farewell-1">
 <!--
   ============================================================
   Dweb — 展區 D 居家風險劇場 · 影片輪播 + 空氣數據疊層 + Trigger 通道
@@ -1357,8 +1357,7 @@ loadCues();
   if(cues){ const a=cues.split(',').map(parseFloat); F.cues=[isFinite(a[0])?a[0]:null, isFinite(a[1])?a[1]:null]; }
   const film=q.get('film');
   if(film) setFilm(film, film);
-  else if(document.documentElement.dataset.player==='cinema')setFilm('film.mp4?v=stream-1','film.mp4');
-  else fetch('film.mp4',{method:'HEAD'}).then(r=>{ if(r.ok && !hasAny()) setFilm('film.mp4','film.mp4'); }).catch(()=>{});
+  else if(document.documentElement.dataset.player!=='cinema')fetch('film.mp4',{method:'HEAD'}).then(r=>{ if(r.ok && !hasAny()) setFilm('film.mp4','film.mp4'); }).catch(()=>{});
 }
 renderFilm();
 if(document.documentElement.dataset.player!=='cinema')['stage1.mp4','stage2.mp4','stage3.mp4'].forEach((f,i)=>{
@@ -1367,11 +1366,11 @@ if(document.documentElement.dataset.player!=='cinema')['stage1.mp4','stage2.mp4'
 setTimeout(()=>fhint.classList.add('gone'), 6000);
 log('Dweb 就緒 · 按 F 開啟介面');
 </script>
-<script src="show-config.js?v=voice-stream-2"></script>
-<script src="player-controls.js?v=once-1"></script><script type="module" src="film-player.js?v=stream-4"></script><script src="theater.js?v=stream-1"></script>
+<script src="show-config.js?v=voice-exit-1"></script>
+<script src="player-controls.js?v=once-1"></script><script type="module" src="film-player.js?v=dissolve-2"></script><script src="theater.js?v=edit-0916-1"></script>
 <script type="importmap">{"imports":{"three":"./vendor/build/three.module.js"}}</script>
-<script type="module" src="kitchen-stage.js?v=smoke-12" onerror="document.documentElement.dataset.cinemaStatus='error'"></script>
+<script type="module" src="kitchen-stage.js?v=iso-13" onerror="document.documentElement.dataset.cinemaStatus='error'"></script>
 <script src="theater-voice.js?v=voice-stream-2"></script>
-<script type="module" src="voice-captions.js?v=roles-2"></script>
+<script type="module" src="voice-captions.js?v=voice-exit-1"></script>
 </body>
 </html>

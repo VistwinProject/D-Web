@@ -3,7 +3,7 @@ import {equipmentAt} from './presentation-cues.mjs';
 import {icon,roles} from './presentation-icons.mjs?v=roles-2';
 const show=window.D_SHOW;
 if(show){
- const cues=buildCaptions(show.clips,28),reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ const cues=[...buildCaptions(show.clips.filter(c=>c.id!=="d07-farewell"),28),{id:"d-farewell",text:"居家風險劇場在此告一段落，請前往下一展區。",start:show.clips.find(c=>c.id==="d07-farewell").start,end:Infinity,closing:true}],reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let previous='',host,rail;
  window.addEventListener('dweb-frame',({detail:d})=>{
   const found=document.querySelector('.left-screen .narration');
@@ -17,7 +17,7 @@ if(show){
   }
   const {cue,opacity}=captionAt(cues,d.time),key=cue?.id||'idle';
   if(key!==previous){
-   previous=key;host.classList.toggle('is-speaking',!!cue);host.dataset.speaker=cue?.role||'';host.querySelector('.subtitle-content').setAttribute('aria-hidden',String(!cue));
+   previous=key;host.classList.toggle('is-speaking',!!cue);host.classList.toggle('is-closing',!!cue?.closing);host.dataset.speaker=cue?.role||'';host.querySelector('.subtitle-content').setAttribute('aria-hidden',String(!cue));
    if(!cue){host.querySelector('.subtitle-text').textContent='';host.querySelector('.speaker-name').textContent='';host.querySelector('.speaker-name').hidden=true;host.classList.remove('has-character');}
    if(cue){const role=roles[cue.role]||roles['旁白'];host.style.setProperty('--speaker-color',role.color);const name=host.querySelector('.speaker-name');name.textContent=role.label||'';name.hidden=!role.label;host.classList.toggle('has-character',!!role.label);host.querySelector('.speaker-icon').innerHTML=icon(role.icon);host.querySelector('.subtitle-text').textContent=cue.text;}
   }

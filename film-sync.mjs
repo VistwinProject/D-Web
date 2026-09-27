@@ -40,5 +40,5 @@ export function createFilmSync(video,{schedule=setTimeout,now=()=>performance.no
   }
   state('ready');
  }
- return {sync,unlock(){blocked=false;progressAt=now();}};
+ return {sync,seek(time){seekTarget=Math.max(0,time);},unlock(){blocked=false;progressAt=now();}};
 }

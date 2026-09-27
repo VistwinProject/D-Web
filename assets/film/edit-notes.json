@@ -1,0 +1,28 @@
+{
+  "status": "approved-for-pages",
+  "source": "D區_smoke_0916.mov",
+  "clips": [
+    {
+      "file": "pollution-red.mp4",
+      "source": "D區_smoke_0916.mov",
+      "in": 0,
+      "out": 29
+    },
+    {
+      "file": "negative-pressure.mp4",
+      "source": "existing film.mp4, original master",
+      "in": 21.5,
+      "out": 29.5,
+      "note": "old fast smoke-clearing section, original speed"
+    },
+    {
+      "file": "purification-green.mp4",
+      "source": "D區_smoke_0916.mov",
+      "in": 34,
+      "out": 52.4
+    }
+  ],
+  "audio": "source audio removed; existing narration retained",
+  "format": "1920x1080 H264 30fps; one-second keyframes; faststart",
+  "timeline": "01/02 no video; cooking -> old exhaust -> green, 2.4 second overlapping dissolves"
+}
