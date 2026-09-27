@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {focusEmphasis} from './focus-emphasis.mjs';
 import {equipmentAppearance} from './equipment-appearance.mjs';
-import {freshAirParticle} from './fresh-air-particles.mjs';
-import {smokeParticle} from './smoke-particles.mjs?v=capture-18';
+import {freshAirParticle} from './fresh-air-particles.mjs?v=wide-entry-19';
+import {smokeParticle} from './smoke-particles.mjs?v=continuous-19';
 import {kitchenShots,cameraPose} from './camera-shots.mjs?v=air-spread-17';
 import {kitchenLayout} from './kitchen-layout.mjs?v=air-spread-17';
 import {mergeGeometries} from './vendor/utils/BufferGeometryUtils.js';
@@ -25,7 +25,7 @@ let renderer,scene,camera,room,glow,hoodLight,smoke,smokeGeo,fresh,freshGeo;
 const ihLines=[],hoodLines=[],ihRings=[];
 const neutralEquipment=new THREE.Color(0x8da5ac),warmIH=new THREE.Color(0xffa24d),hotIH=new THREE.Color(0xff493e),activeHood=new THREE.Color(0x62e89c);
 const origin=new THREE.Vector3(...kitchenLayout.stove),exhaust=new THREE.Vector3(...kitchenLayout.hood);
-const smokeCount=90,freshCount=100;
+const smokeCount=90,freshCount=140;
 const hash=n=>{const v=Math.sin(n*127.1)*43758.5453;return v-Math.floor(v);};
 let current={time:0,scene:0,progress:0,values:[480,.03,.2,8,10,20]},lastScene=-1;
 function box(w,h,d,material,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,25),new THREE.LineBasicMaterial({color:0xc1d4da,transparent:true,opacity:.6})));scene.add(m);return m;}
@@ -136,27 +136,27 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  if(!renderer||!smoke)return;
  // All positions derive from the shared exhibition clock, not random frame state.
  const arr=smokeGeo.attributes.position.array,alphas=smokeGeo.attributes.particleAlpha.array;
- const purificationStart=window.D_SHOW.starts[5],clearing=t>=purificationStart;
- smoke.visible=!opening&&i!==1&&!(window.D_SHOW&&i===2&&t<window.D_SHOW.events.heatOn)&&t<purificationStart+22;
+ const heatOff=window.D_SHOW.events.heatOff,clearing=t>=heatOff;
+ smoke.visible=!opening&&i!==1&&!(window.D_SHOW&&i===2&&t<window.D_SHOW.events.heatOn)&&t<heatOff+5.4;
  smoke.material.opacity=i===0?.6:i===2?1:i===3?.95:.55;
  const exhausting=t>=window.D_SHOW.events.exhaustOn;
  const hoodOffset=exhaust.clone().sub(origin).toArray();
  for(let k=0;k<smokeCount;k++){
-  const point=smokeParticle(k,t,{purificationStart,exhaustOn:window.D_SHOW.events.exhaustOn,hoodOffset});
+  const point=smokeParticle(k,t,{heatOff,exhaustOn:window.D_SHOW.events.exhaustOn,hoodOffset});
   arr[k*3]=origin.x+point.x;arr[k*3+1]=origin.y+point.y;arr[k*3+2]=origin.z+point.z;alphas[k]=point.alpha;
  }
  viewport.dataset.smokeCapture=String(exhausting);
  smokeGeo.attributes.position.needsUpdate=true;
  smokeGeo.attributes.particleAlpha.needsUpdate=true;
  viewport.dataset.smokeEmitting=String(smoke.visible&&!clearing);viewport.dataset.smokeRemaining=String(Array.from(alphas).filter(a=>a>.001).length);
- fresh.visible=i>=4&&t>=window.D_SHOW.events.freshOn;fresh.material.opacity=i===5?.65:.85;
+ fresh.visible=i>=4&&t>=window.D_SHOW.events.freshOn;fresh.material.opacity=i===5?.85:.95;
  const fp=freshGeo.attributes.position.array,fa=freshGeo.attributes.particleAlpha.array;
  for(let k=0;k<freshCount;k++){
   const particle=freshAirParticle(k,t,window.D_SHOW.events.freshOn);
   fp[k*3]=particle.x;fp[k*3+1]=particle.y;fp[k*3+2]=particle.z;fa[k]=particle.alpha;
  }
  freshGeo.attributes.position.needsUpdate=true;freshGeo.attributes.particleAlpha.needsUpdate=true;
- viewport.dataset.freshPlacement='unverified';viewport.dataset.freshPattern='distributed-room-mixing';
+ viewport.dataset.freshPlacement='unverified';viewport.dataset.freshPattern='wide-lower-right-entry';
  glow.intensity=i===2?1+p*2:i===3?2:i===4?2:1;
  const appearance=equipmentAppearance(t,window.D_SHOW.events,window.D_SHOW.duration);
  const {weights,pulse}=cameraShots?focusEmphasis(cameraShots,t,cameraMotionPreference.matches):{weights:{},pulse:1};
@@ -168,7 +168,7 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  updateCamera(t);
  // Orthographic cameras do not apply distance attenuation to point sprites.
  const pixelsPerMetre=viewport.clientHeight*camera.zoom/(camera.top-camera.bottom);
- smoke.material.size=.10*pixelsPerMetre;fresh.material.size=.065*pixelsPerMetre;
+ smoke.material.size=.075*pixelsPerMetre;fresh.material.size=.10*pixelsPerMetre;
  pin('#hobPin',origin,i===2);pin('#hoodPin',exhaust,i===3);ui.querySelector('#freshPin').hidden=true;
  renderer.render(scene,camera);
 }
