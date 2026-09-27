@@ -29,3 +29,10 @@ test('a stalled load recovers without stalling the exhibition clock',()=>{
  const s=setup();s.video.readyState=0;s.control.sync(16,true,16000);assert.equal(s.jobs.length,1);
  s.control.sync(17,true,17000);assert.equal(s.jobs.length,1);
 });
+
+test('slow streaming never seeks ahead to chase the exhibition clock',()=>{
+ const s=setup();s.video.readyState=4;
+ for(let t=0;t<=35;t+=.15)s.control.sync(t,true,t*1000);
+ assert.equal(s.video.currentTime,0);assert.equal(s.video.plays,1);
+ s.control.sync(59,true,40000);assert.equal(s.video.currentTime,29.95);assert.equal(s.video.paused,true);
+});
