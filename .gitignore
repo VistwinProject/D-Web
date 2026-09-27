@@ -11,3 +11,8 @@ assets/export.log
 
 # Approved ambient film is included in the Pages exhibition.
 !film.mp4
+
+# Approved edited exhibition clips for Pages.
+!assets/film/pollution-red.mp4
+!assets/film/negative-pressure.mp4
+!assets/film/purification-green.mp4
