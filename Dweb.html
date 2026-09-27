@@ -22,7 +22,7 @@ html[data-cinema-status="error"] .cinema-startup span::after{content:'載入失�
 </style>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="theater.css">
-<link rel="stylesheet" href="cinema.css?v=voice-20260923">
+<link rel="stylesheet" href="cinema.css?v=stream-1">
 <link rel="stylesheet" href="captions.css?v=slow-1">
 <!--
   ============================================================
@@ -450,7 +450,7 @@ kbd{
 <!-- ============ 1. 舞台（1:1）+ 2. 資訊疊層 ============ -->
 <div class="stage" id="stage">
   <div class="cinema-startup" role="status"><span></span><span></span></div>
-  <video id="v0" playsinline muted></video>
+  <img class="film-fallback" src="assets/film-poster.jpg" alt="" aria-hidden="true"><video id="v0" playsinline muted preload="auto" poster="assets/film-poster.jpg"></video>
   <video id="v1" playsinline muted></video>
   <video id="v2" playsinline muted></video>
   <div class="novideo" id="novideo">
@@ -780,9 +780,10 @@ function setFilm(url, name){
     for(let i=0;i<N;i++){ S.srcs[i]=null; S.names[i]=''; }          // 三段模式讓位
     vids.forEach((v,k)=>{ if(k){ v.removeAttribute('src'); try{v.load();}catch(e){} } });
     S.cur=0;
-    filmV.src=url; filmV.load(); filmV.loop=(S.mode!=='wait'); filmV.muted=S.muted;
+    const cinema=document.documentElement.dataset.player==='cinema';
+    filmV.preload='auto';filmV.src=url;filmV.loop=cinema?false:(S.mode!=='wait');filmV.muted=cinema?true:S.muted;filmV.load();
     vids.forEach((v,k)=>v.classList.toggle('on',k===0));
-    filmV.play().catch(()=>{});
+    if(!cinema)filmV.play().catch(()=>{});
   } else {
     filmV.removeAttribute('src'); try{filmV.load();}catch(e){} filmV.classList.remove('on');
   }
@@ -801,7 +802,7 @@ filmV.addEventListener('timeupdate', ()=>{
   renderChain();
 });
 filmV.addEventListener('loadedmetadata', ()=>{
-  if(!filmActive()) return;
+  if(document.documentElement.dataset.player==='cinema'||!filmActive()) return;
   filmChap=-1;
   filmV.play().catch(()=>log('瀏覽器擋下自動播放，按任一鍵或點一下畫面開始','e'));
 });
@@ -1356,17 +1357,18 @@ loadCues();
   if(cues){ const a=cues.split(',').map(parseFloat); F.cues=[isFinite(a[0])?a[0]:null, isFinite(a[1])?a[1]:null]; }
   const film=q.get('film');
   if(film) setFilm(film, film);
+  else if(document.documentElement.dataset.player==='cinema')setFilm('film.mp4?v=stream-1','film.mp4');
   else fetch('film.mp4',{method:'HEAD'}).then(r=>{ if(r.ok && !hasAny()) setFilm('film.mp4','film.mp4'); }).catch(()=>{});
 }
 renderFilm();
-['stage1.mp4','stage2.mp4','stage3.mp4'].forEach((f,i)=>{
+if(document.documentElement.dataset.player!=='cinema')['stage1.mp4','stage2.mp4','stage3.mp4'].forEach((f,i)=>{
   fetch(f,{method:'HEAD'}).then(r=>{ if(r.ok) setSource(i,f,f); }).catch(()=>{});
 });
 setTimeout(()=>fhint.classList.add('gone'), 6000);
 log('Dweb 就緒 · 按 F 開啟介面');
 </script>
 <script src="show-config.js?v=continuous-10"></script>
-<script src="player-controls.js?v=once-1"></script><script src="theater.js?v=once-1"></script>
+<script src="player-controls.js?v=once-1"></script><script type="module" src="film-player.js?v=stream-1"></script><script src="theater.js?v=stream-1"></script>
 <script type="importmap">{"imports":{"three":"./vendor/build/three.module.js"}}</script>
 <script type="module" src="kitchen-stage.js?v=model-11" onerror="document.documentElement.dataset.cinemaStatus='error'"></script>
 <script src="theater-voice.js?v=once-1"></script>

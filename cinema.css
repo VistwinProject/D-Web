@@ -40,3 +40,7 @@ body.cinema .stage>video.on{visibility:visible;pointer-events:none}
 .scene-explanation p{font-size:1.25cqw;line-height:1.7;color:#a7b8c3;margin:0}
 body.cinema .fhint{display:none}
 @media(prefers-reduced-motion:reduce){.cinema-ui *{transition:none!important}}
+
+.film-fallback{display:none}
+html[data-player="cinema"] .film-fallback{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42;filter:grayscale(1);mix-blend-mode:screen;pointer-events:none}
+html[data-player="cinema"] .stage:has(#v0[data-film-state="ready"]) .film-fallback{opacity:0}

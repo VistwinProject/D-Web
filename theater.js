@@ -89,13 +89,7 @@ function frame(now){let t=time();if(!endpoint&&mode==='wait'&&t>=(starts[idx(pos
  aqiHist=Array.from({length:90},(_,k)=>{const at=Math.max(0,t-(89-k)),j=idx(at),f=metricProgress(at,j),e=f*f*(3-2*f);return aqiFromPM25(scenes[j][4][4]+(scenes[j][5][4]-scenes[j][4][4])*e);});drawSpark();
  story.querySelector('#storyTime').textContent=`0${i+1} / 06　·　${Math.floor(t).toString().padStart(2,'0')} / ${duration} s`;
  if(document.activeElement!==control.querySelector('input'))control.querySelector('input').value=t;
- const period=Number.isFinite(filmV.duration)?filmV.duration:30,target=Math.min(t,Math.max(0,period-.001));
- filmV.loop=false;
- if(filmV.readyState>=2&&!filmV.seeking){
-  if(Math.abs(target-filmV.currentTime)>.3&&now-lastVideoSeek>500){filmV.currentTime=target;lastVideoSeek=now;}
-  filmV.playbackRate=1;
-  if(playing&&t<period){if(filmV.paused)filmV.play().catch(()=>{});}else filmV.pause();
- }
+ window.DFilm?.sync(t,playing,now);
 
  }
  window.dispatchEvent(new CustomEvent('dweb-frame',{detail:{time:t,scene:i,progress:p,playing,mode,values:S.values.slice(),external:!!external}}));
