@@ -10,7 +10,7 @@ function setup(){
 test('buffering does not repeatedly seek or enqueue play calls',async()=>{
  const s=setup();s.video.readyState=1;
  for(let t=0;t<10000;t+=150)s.control.sync(t/1000,true,t);
- assert.equal(s.video.currentTime,0);assert.equal(s.video.plays,0);
+ assert.equal(s.video.currentTime,0);assert.equal(s.video.plays,1);
  s.video.readyState=4;s.control.sync(0,true,10000);s.control.sync(0,true,10150);assert.equal(s.video.plays,1);
  await Promise.resolve();await Promise.resolve();
 });

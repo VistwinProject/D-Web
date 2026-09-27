@@ -18,6 +18,14 @@ export function createFilmSync(video,{schedule=setTimeout,now=()=>performance.no
   const target=Math.min(desired,end),shouldPlay=playing&&desired<end;
   if(video.currentTime!==lastFrame){lastFrame=video.currentTime;progressAt=stamp;}
   if(!shouldPlay)video.pause();
+  // Some browsers preload only metadata until play() explicitly requests frames.
+  // Keep exactly one request pending while buffering; do not wait for loadeddata.
+  if(shouldPlay&&video.readyState>=1&&video.paused&&!pending&&!blocked){
+   pending=true;
+   Promise.resolve(video.play()).catch(error=>{
+    if(error?.name==='NotAllowedError')blocked=true;
+   }).finally(()=>{pending=false;if(!playing)video.pause();});
+  }
   if(video.readyState<2||video.seeking){
    if(shouldPlay&&stamp-progressAt>15000)recover();
    return;
@@ -25,12 +33,6 @@ export function createFilmSync(video,{schedule=setTimeout,now=()=>performance.no
   state('ready');
   if(Math.abs(target-video.currentTime)>(shouldPlay?.85:.12)&&stamp-seekAt>1800){
    video.currentTime=target;seekAt=stamp;progressAt=stamp;return;
-  }
-  if(shouldPlay&&video.paused&&!pending&&!blocked){
-   pending=true;
-   Promise.resolve(video.play()).catch(error=>{
-    if(error?.name==='NotAllowedError')blocked=true;
-   }).finally(()=>{pending=false;if(!playing)video.pause();});
   }
  }
  return {sync,unlock(){blocked=false;progressAt=now();}};
