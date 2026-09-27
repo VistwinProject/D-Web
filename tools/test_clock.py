@@ -13,9 +13,14 @@ class ClockTests(unittest.TestCase):
             self.assertEqual(serve.command({'cmd':'goto','stage':i+1})['time'],t)
         serve.command({'cmd':'pause'});self.now.return_value=1030
         self.assertEqual(serve.snapshot()['time'],serve.STARTS[-1])
-    def test_loop(self):
+    def test_stops_once_and_remains_at_end(self):
         self.now.return_value=1000+serve.DURATION+5
-        self.assertEqual(serve.snapshot()['time'],5)
+        self.assertEqual(serve.snapshot()['time'],serve.DURATION)
+        self.assertFalse(serve.snapshot()['playing'])
+        self.now.return_value+=1000
+        self.assertEqual(serve.snapshot()['time'],serve.DURATION)
+        self.assertEqual(serve.command({'cmd':'reset'})['time'],0)
+        self.assertTrue(serve.snapshot()['playing'])
     def test_wait_and_trigger(self):
         serve.command({'cmd':'mode','value':'wait'});self.now.return_value=1000+serve.STARTS[1]+3
         self.assertFalse(serve.snapshot()['playing'])
@@ -24,7 +29,8 @@ class ClockTests(unittest.TestCase):
     def test_hold(self):
         serve.command({'cmd':'goto','stage':3});serve.command({'cmd':'mode','value':'hold'})
         self.now.return_value=1000+(serve.STARTS[3]-serve.STARTS[2])+4
-        self.assertEqual(serve.snapshot()['time'],serve.STARTS[2]+4)
+        self.assertEqual(serve.snapshot()['time'],serve.STARTS[3]-.001)
+        self.assertFalse(serve.snapshot()['playing'])
     def test_external_data_and_reset(self):
         s=serve.command({'cmd':'data','pm25':123})
         self.assertEqual(s['values'][4],123)

@@ -14,12 +14,15 @@ class VoiceBuildTests(unittest.TestCase):
                     f.writeframes(array.array('h',[200,-200])*(build.RATE//2*(index%3+1)))
             with patch.object(build,'ROOT',root),contextlib.redirect_stdout(io.StringIO()):build.build()
             show=json.loads((root/'show.json').read_text(encoding='utf-8'))
-            self.assertEqual(len(show['clips']),12)
+            self.assertEqual(len(show['clips']),len(build.SCRIPT['clips']))
             for i,clip in enumerate(show['clips']):
                 self.assertGreaterEqual(clip['start'],show['starts'][clip['scene']-1])
                 end=(show['starts']+[show['duration']])[clip['scene']]
                 self.assertLess(clip['end'],end)
-                if i:self.assertGreater(clip['start'],show['clips'][i-1]['end'])
+                if i:
+                    gap=clip['start']-show['clips'][i-1]['end']
+                    self.assertGreater(gap,0)
+                    self.assertLessEqual(gap,1.001)
             self.assertGreater(show['events']['heatOff'],show['starts'][5])
             self.assertLess(show['events']['heatOn'],show['starts'][3])
             with wave.open(str(root/show['audio'])) as master:

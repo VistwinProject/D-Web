@@ -1,15 +1,34 @@
-/* Text follows the same cues as the soundtrack, including while muted. */
-(() => {
- const show=window.D_SHOW;
- if(!show) return;
- let lastKey='';
+import {buildCaptions,captionAt} from './caption-timeline.mjs?v=slow-1';
+import {equipmentAt} from './presentation-cues.mjs';
+import {icon,roles} from './presentation-icons.mjs?v=roles-2';
+const show=window.D_SHOW;
+if(show){
+ const cues=buildCaptions(show.clips,28),reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ let previous='',host,rail;
  window.addEventListener('dweb-frame',({detail:d})=>{
-  const host=document.querySelector('.left-screen .narration');
-  if(!host)return;
-  const cue=show.clips.find(c=>d.time>=c.start&&d.time<c.end);
-  const key=cue?.id||`gap-${d.scene}`;
-  if(key===lastKey)return;lastKey=key;
-  if(cue){host.textContent=cue.text;host.dataset.speaker=cue.role;}
-  else {host.textContent=['看不見的空氣，也會隨著生活改變。','六項空氣指標，持續感知家的變化。','一頓晚餐，讓我們看見室內空氣的改變。','油煙從源頭集中帶離，減少向室內擴散。','新鮮空氣持續送入，守護生活空間。','每一口呼吸、每一位家人，都值得被好好照顧。'][d.scene]||'';delete host.dataset.speaker;}
+  const found=document.querySelector('.left-screen .narration');
+  if(!found||!Number.isFinite(d.time))return;
+  if(found!==host){
+   host=found;previous='';host.setAttribute('aria-live','polite');host.setAttribute('aria-atomic','true');
+   host.innerHTML='<div class="subtitle-idle" aria-hidden="true"></div><div class="subtitle-content"><div class="speaker-line"><span class="speaker-icon"></span><strong class="speaker-name" hidden></strong><span class="speaking-bars" aria-hidden="true">▂ ▅ ▃ ▆</span></div><p class="subtitle-text"></p></div>';
+   rail=document.createElement('section');rail.className='equipment-status';rail.setAttribute('aria-label','展演設備狀態');
+   rail.innerHTML=equipmentAt(show.events,0,show.duration).map(e=>`<div class="equipment-state" data-equipment="${e.id}"><span class="machine-icon">${icon(e.id)}</span><div><b>${e.label}</b><span class="machine-state">待機</span></div><i class="machine-led" aria-hidden="true"></i></div>`).join('');
+   document.querySelector('.right-screen').append(rail);
+  }
+  const {cue,opacity}=captionAt(cues,d.time),key=cue?.id||'idle';
+  if(key!==previous){
+   previous=key;host.classList.toggle('is-speaking',!!cue);host.dataset.speaker=cue?.role||'';host.querySelector('.subtitle-content').setAttribute('aria-hidden',String(!cue));
+   if(!cue){host.querySelector('.subtitle-text').textContent='';host.querySelector('.speaker-name').textContent='';host.querySelector('.speaker-name').hidden=true;host.classList.remove('has-character');}
+   if(cue){const role=roles[cue.role]||roles['旁白'];host.style.setProperty('--speaker-color',role.color);const name=host.querySelector('.speaker-name');name.textContent=role.label||'';name.hidden=!role.label;host.classList.toggle('has-character',!!role.label);host.querySelector('.speaker-icon').innerHTML=icon(role.icon);host.querySelector('.subtitle-text').textContent=cue.text;}
+  }
+  host.querySelector('.subtitle-content').style.opacity=String(reduced.matches&&cue?1:opacity);
+  host.classList.toggle('is-paused',!d.playing);
+  for(const e of equipmentAt(show.events,d.time,show.duration)){
+   const el=rail.querySelector(`[data-equipment="${e.id}"]`);
+   el.classList.toggle('is-on',e.active);el.classList.toggle('is-starting',e.starting);
+   el.style.setProperty('--spin',(reduced.matches?0:e.rotation)+'deg');el.style.setProperty('--pulse',String(reduced.matches?1:e.pulse));
+   const status=el.querySelector('.machine-state');if(status.textContent!==e.status)status.textContent=e.status;
+   el.setAttribute('aria-label',e.label+'：'+e.status);
+  }
  });
-})();
+}

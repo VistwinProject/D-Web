@@ -1,0 +1,39 @@
+{
+  "version": "2026-09-27",
+  "duckGain": 0.28,
+  "cues": [
+    {
+      "id": "cooking-sizzle",
+      "file": "assets/audio/sfx/cooking-sizzle.wav",
+      "start": "heatOn",
+      "end": "heatOff",
+      "gain": 0.42,
+      "fadeIn": 1.2,
+      "fadeOut": 1.0,
+      "loopStart": 1,
+      "crossfade": 0.25
+    },
+    {
+      "id": "extractor-start-and-run",
+      "file": "assets/audio/sfx/extractor-start.wav",
+      "start": "exhaustOn",
+      "end": "end",
+      "gain": 0.62,
+      "fadeIn": 0.025,
+      "fadeOut": 4,
+      "loopStart": 6,
+      "crossfade": 0.3
+    },
+    {
+      "id": "fresh-air-ventilation",
+      "file": "assets/audio/sfx/ventilation.wav",
+      "start": "freshOn",
+      "end": "end",
+      "gain": 0.48,
+      "fadeIn": 1.6,
+      "fadeOut": 4,
+      "loopStart": 1,
+      "crossfade": 0.3
+    }
+  ]
+}

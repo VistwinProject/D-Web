@@ -1,0 +1,44 @@
+[
+  {
+    "file": "extractor-start.wav",
+    "title": "extractor fan.wav",
+    "author": "iccleste",
+    "source": "https://freesound.org/people/iccleste/sounds/260817/",
+    "download": "https://cdn.freesound.org/previews/260/260817_4858376-hq.mp3",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "retrieved": "2026-09-27",
+    "sourceOffsetSeconds": 1.0,
+    "durationSeconds": 24.0,
+    "processing": "MP3 preview decoded; mono PCM16 32000 Hz; highpass 60 Hz, lowpass 5000 Hz; RMS target -21.4 dBFS, peak cap -2.5 dBFS",
+    "sourceSha256": "b40770c4bcb2fce6756dd3241f78d10656be4b6e4f56a517955dab95fbc0d4d2"
+  },
+  {
+    "file": "ventilation.wav",
+    "title": "Room Tone, Deep Ventilation",
+    "author": "Kinoton",
+    "source": "https://freesound.org/people/Kinoton/sounds/503255/",
+    "download": "https://cdn.freesound.org/previews/503/503255_2247456-hq.mp3",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "retrieved": "2026-09-27",
+    "sourceOffsetSeconds": 10,
+    "durationSeconds": 24.0,
+    "processing": "MP3 preview decoded; mono PCM16 32000 Hz; highpass 80 Hz, lowpass 2400 Hz; RMS target -21.4 dBFS, peak cap -2.5 dBFS",
+    "sourceSha256": "db2dff0746a90178be31e751b64d4f5ec368b177d852129ca5149d17d7c90420"
+  },
+  {
+    "file": "cooking-sizzle.wav",
+    "title": "Frying Egg.wav",
+    "author": "ciccarelli",
+    "source": "https://freesound.org/people/ciccarelli/sounds/170416/",
+    "download": "https://cdn.freesound.org/previews/170/170416_1672196-hq.mp3",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "retrieved": "2026-09-27",
+    "sourceOffsetSeconds": 5,
+    "durationSeconds": 24.0,
+    "processing": "MP3 preview decoded; mono PCM16 32000 Hz; highpass 150 Hz, lowpass 6000 Hz; RMS target -21.4 dBFS, peak cap -2.5 dBFS",
+    "sourceSha256": "fc279b5fbb8b6f92d786fe7492e024da1ff032ed81fae47bddd848b2a68c34fd"
+  }
+]

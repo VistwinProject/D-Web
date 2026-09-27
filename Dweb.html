@@ -23,6 +23,7 @@ html[data-cinema-status="error"] .cinema-startup span::after{content:'載入失�
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="theater.css">
 <link rel="stylesheet" href="cinema.css?v=voice-20260923">
+<link rel="stylesheet" href="captions.css?v=slow-1">
 <!--
   ============================================================
   Dweb — 展區 D 居家風險劇場 · 影片輪播 + 空氣數據疊層 + Trigger 通道
@@ -442,7 +443,7 @@ kbd{
 }
 .fhint.gone{opacity:0;}
 </style>
-</head>
+<link rel="stylesheet" href="player-controls.css?v=once-1"><link rel="stylesheet" href="exhibition-type.css?v=roles-2"></head>
 <body>
 <script>if(document.documentElement.dataset.player==='cinema') document.body.classList.add('theater','cinema');</script>
 
@@ -1364,11 +1365,11 @@ renderFilm();
 setTimeout(()=>fhint.classList.add('gone'), 6000);
 log('Dweb 就緒 · 按 F 開啟介面');
 </script>
-<script src="show-config.js?v=voice-20260923"></script>
-<script src="theater.js?v=voice-20260923"></script>
+<script src="show-config.js?v=continuous-10"></script>
+<script src="player-controls.js?v=once-1"></script><script src="theater.js?v=once-1"></script>
 <script type="importmap">{"imports":{"three":"./vendor/build/three.module.js"}}</script>
-<script type="module" src="kitchen-stage.js?v=startup-20260923" onerror="document.documentElement.dataset.cinemaStatus='error'"></script>
-<script src="theater-voice.js?v=voice-20260923"></script>
-<script src="voice-captions.js?v=voice-20260923"></script>
+<script type="module" src="kitchen-stage.js?v=model-11" onerror="document.documentElement.dataset.cinemaStatus='error'"></script>
+<script src="theater-voice.js?v=once-1"></script>
+<script type="module" src="voice-captions.js?v=roles-2"></script>
 </body>
 </html>

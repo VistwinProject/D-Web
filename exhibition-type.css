@@ -1,0 +1,38 @@
+/* Text is the foreground: larger type without opaque information panels. */
+.cinema-ui header{font-size:1.4cqw;font-weight:500;letter-spacing:.04em;color:#d4e1ec}
+.cinema-ui header span:last-child{font-size:1.2cqw}
+.chapter-number{font-size:3.8cqw}.chapter>span{font-size:1.65cqw}.chapter-name{font-size:2.15cqw;font-weight:500}
+.cinema-ui h1{top:17.3cqw;left:2cqw;right:2cqw;font-size:4.15cqw;line-height:1.22;font-weight:600;letter-spacing:-.035em;color:#fff}
+.cinema-ui .narration,.cinema-ui .narration[data-speaker]{top:28.5cqw;height:25cqw;padding:1.4cqw 1.4cqw;background:transparent}
+.speaker-line{margin-bottom:1.05cqw}.speaker-icon{width:3.7cqw;height:3.7cqw;flex-basis:3.7cqw}
+.subtitle-text{font-size:2.8cqw;line-height:1.52;letter-spacing:.01em;font-weight:600;color:#fff;text-shadow:0 1px 6px #000a}
+.cinema-ui .state-label{top:55cqw;font-size:1.8cqw;font-weight:500;letter-spacing:.04em}
+.cinema-ui .primary-metric{top:59cqw}
+.cinema-ui .primary-metric>div>span{font-size:2.05cqw;font-weight:500}
+.cinema-ui .primary-metric small{font-size:1.4cqw;color:#c3d2dd}
+.cinema-ui .primary-metric>strong{font-size:8.8cqw;line-height:1.05;font-weight:600}
+.cinema-ui .primary-metric>span{font-size:1.9cqw;color:#c3d2dd}
+.cinema-ui .primary-metric p{font-size:1.3cqw;line-height:1.5;color:#c3d2dd}
+.cinema-ui .metric-strip{top:74.5cqw;gap:.8cqw 1.3cqw}
+.cinema-ui .metric-strip span{font-size:1.35cqw;color:#d1dee7}
+.cinema-ui .metric-strip strong{font-size:2.35cqw;font-weight:600;margin:.12cqw 0;line-height:1.15}
+.cinema-ui .metric-strip small{font-size:1.1cqw;color:#b9cbd8}
+.cinema-ui .history{top:89cqw;height:4.8cqw}
+.cinema-ui .history>span{font-size:1.2cqw;color:#c3d2dd}
+.cinema-ui .history svg{height:2.8cqw}
+.cinema-ui footer,.cinema-ui footer .chapter-name{font-size:1.15cqw;color:#b5c7d4}
+.equipment-state b,.machine-state{font-size:1.32cqw;font-weight:500}
+.equipment-state b{color:#e1eaf0}.machine-icon{width:3cqw;height:3cqw;flex-basis:3cqw}
+.equipment-pin{font-size:1.6cqw;font-weight:600}
+.process-number{font-size:1.25cqw}.scene-explanation h2{font-size:3cqw;font-weight:600}
+.scene-explanation p{font-size:1.65cqw;line-height:1.6;color:#d1dee7}
+.cinema-ui .metric-strip span{line-height:1.2}
+.cinema-ui .metric-strip strong{line-height:1.1}
+.cinema-ui .metric-strip small{display:block;line-height:1.2}
+
+/* Clearly identify theatre characters without displaying performer credits. */
+.narration.has-character .speaker-line{gap:1.35cqw;margin-bottom:1.05cqw}
+.narration.has-character .speaker-icon{width:7.2cqw;height:7.2cqw;flex-basis:7.2cqw;padding:.5cqw;border-width:2px;background:transparent}
+.narration.has-character .speaker-name{font-size:3.2cqw;line-height:1.2;font-weight:600;letter-spacing:.06em;color:var(--speaker-color)}
+.speaker-name[hidden]{display:none}
+.narration.has-character .speaking-bars{display:none}

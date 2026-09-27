@@ -11,7 +11,7 @@ METRICS = ['co2','hcho','tvoc','pm1','pm25','pm10']
 NORMAL = [480,.03,.2,8,10,20]
 TARGETS = [NORMAL,NORMAL,[900,.07,2.5,100,200,150],[650,.045,.8,35,60,65],NORMAL,NORMAL]
 lock = threading.Lock()
-state = dict(time=0., playing=True, values=None, mode='auto')
+state = dict(time=0., playing=False, values=None, mode='auto')
 anchor = time.monotonic()
 
 def snapshot():
@@ -20,12 +20,10 @@ def snapshot():
     t = state['time']+elapsed
     start_scene = max(i for i,s in enumerate(STARTS) if state['time'] >= s)
     boundary = (STARTS+[DURATION])[start_scene+1]
-    if state['mode'] == 'wait' and t >= boundary:
-        state.update(time=boundary-.001, playing=False)
+    end = boundary if state['mode'] in ('wait','hold') else DURATION
+    if t >= end:
+        state.update(time=end-.001 if end < DURATION else DURATION, playing=False)
         t=state['time']; anchor=time.monotonic()
-    elif state['mode'] == 'hold':
-        t = STARTS[start_scene]+(t-STARTS[start_scene])%(boundary-STARTS[start_scene])
-    else: t %= DURATION
     return {**state, 'time':t, 'stamp':time.monotonic()}
 
 def command(p):
@@ -37,9 +35,9 @@ def command(p):
         if not 1 <= n <= 6: raise ValueError('scene must be 1..6')
         t=STARTS[n-1]
     elif c in ('next','trigger','advance'):
-        t=STARTS[(i+1)%6]
+        t=STARTS[min(i+1,5)]
         if state['mode']=='wait': state['playing']=True
-    elif c=='prev': t=STARTS[(i+5)%6]
+    elif c=='prev': t=STARTS[max(i-1,0)]
     elif c=='seek': t=max(0,min(DURATION-.001,float(p['time'])))
     elif c=='reset': t=0; state.update(playing=True,values=None)
     elif c=='play': state['playing']=True
@@ -77,7 +75,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.split('?')[0]=='/api/state':
             with lock: self.reply(snapshot())
-        elif self.path.split('?')[0] in ('/film.mp4','/assets/audio/theatre-voice.wav'):
+        elif self.path.split('?')[0] in ('/film.mp4','/assets/audio/theatre-voice.wav','/assets/audio/theatre-mix.wav'):
             relative=self.path.split('?')[0].lstrip('/')
             file=Path(self.directory)/relative
             if not file.is_file():return self.send_error(404)

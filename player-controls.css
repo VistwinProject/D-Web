@@ -1,0 +1,26 @@
+/* Shared preview transport: both exhibits use the same bottom controls. */
+body>footer.preview-player{position:fixed;inset:auto 0 0;height:84px;z-index:400;display:flex;align-items:center;gap:28px;padding:12px 28px;background:#07121ee8;color:#d4e4fa;border-top:1px solid #7896ab40;backdrop-filter:blur(8px);font:12px Inter,"Microsoft JhengHei",sans-serif;box-sizing:border-box;text-align:left}
+.preview-player .playback{display:flex;align-items:center;gap:8px;flex:none}
+.preview-player button,.preview-player a,.preview-player select{font:inherit;color:#c7dcea;background:transparent;border:1px solid #7896ab60;border-radius:6px;padding:9px 12px;text-decoration:none;cursor:pointer;white-space:nowrap}
+.preview-player .primary{background:#234c69;border-color:#709bb8;color:#fff;min-width:86px}
+.preview-player .timeline{position:relative;display:flex;flex:1;gap:18px;border-top:2px solid #7896ab40;padding-top:12px;max-width:none}
+.preview-player .timeline button{flex:1;border:0;padding:0;text-align:left;font-size:11px;color:#8ea7ba;background:none}
+.preview-player .timeline button.active{color:#e0f3ff}
+.preview-player .timeline b{font-size:10px;font-weight:400;margin-right:6px}
+.preview-player #progress{position:absolute;left:0;top:-2px;height:2px;background:#9bc7e3;max-width:100%}
+.preview-player #time{font-size:10px;color:#a3b7c7;white-space:nowrap;font-variant-numeric:tabular-nums}
+.preview-player .preview-options{position:relative;border:0;padding:0;flex:none}
+.preview-options summary{color:#adc4d5;cursor:pointer;list-style:none;font-size:11px}
+.preview-options>div{position:absolute;bottom:32px;right:0;background:#0d1c2b;border:1px solid #7896ab60;padding:12px;min-width:165px;display:grid;gap:8px;border-radius:8px}
+body.has-preview-player .stage{--S:min(100vw,calc(100dvh - 84px));top:calc((100dvh - 84px - var(--S))/2)}
+body.preview-page{padding-bottom:84px}
+body.preview-page main{width:min(calc(100vw - 24px),calc((100dvh - 100px)*1.125));margin:8px auto}
+@media(max-width:1100px){body>footer.preview-player{height:112px;flex-wrap:wrap;gap:12px;padding:12px 20px}.preview-player .timeline{order:-1;flex-basis:100%;gap:10px}.preview-player .timeline button{font-size:10px}.preview-player .preview-options{margin-left:auto}body.has-preview-player .stage{--S:min(100vw,calc(100dvh - 112px));top:calc((100dvh - 112px - var(--S))/2)}body.preview-page{padding-bottom:112px}body.preview-page main{width:min(calc(100vw - 24px),calc((100dvh - 128px)*1.125))}main.exhibition-stage{height:calc(100dvh - 184px)}}
+
+/* Readable controls retain the same bottom transport in both exhibits. */
+body>footer.preview-player{font-size:14px}
+.preview-player .timeline button{font-size:14px;font-weight:500;color:#b2c8d9}
+.preview-player .timeline b,.preview-player #time{font-size:12px}
+.preview-options summary,#presentation-tools>summary{font-size:14px}
+.preview-player #voiceToggle{font-size:14px}
+@media(max-width:1100px){.preview-player .timeline button{font-size:12px}}

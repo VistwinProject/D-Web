@@ -13,11 +13,11 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){cuePriori
 // Set the clock before the first navigation; replacing an already-loading src
 // used to restart both panels and amplify the old interface's startup flash.
 document.querySelectorAll('iframe').forEach(frame=>{const url=new URL(frame.dataset.src||frame.getAttribute('src'),location.href);if(!server)url.searchParams.set('syncChannel',channelName);frame.src=url.href;});
-let position=0,anchor=performance.now(),playing=true,values=null;
-function snapshot(){return {source:'preview-clock',time:(position+(playing?(performance.now()-anchor)/1000:0))%duration,playing,values,mode:'auto',stamp:Date.now()/1000};}
+let position=0,anchor=performance.now(),playing=false,values=null;
+function snapshot(){const t=Math.min(duration,position+(playing?(performance.now()-anchor)/1000:0));if(t>=duration){position=duration;playing=false;}return {source:'preview-clock',time:t,playing,values,mode:'auto',stamp:Date.now()/1000};}
 function apply(s){position=s.time;anchor=performance.now();playing=s.playing;values=s.values||null;}
-function offline(){window.dispatchEvent(new CustomEvent('dweb-frame',{detail:{time:position,playing:false}}));document.getElementById('status').textContent='同步服務離線';}
-function display(s){if(server)apply(s);const i=starts.findLastIndex(t=>s.time>=t),select=document.getElementById('scene');if(document.activeElement!==select)select.value=i+1;document.getElementById('status').textContent=`${String(i+1).padStart(2,'0')} / 06 ${names[i]} · ${s.playing?'播放中':'已暫停'}`;window.dispatchEvent(new CustomEvent('dweb-frame',{detail:s}));}
+function offline(){window.dispatchEvent(new CustomEvent('dweb-frame',{detail:{time:position,playing:false}}));}
+function display(s){if(server)apply(s);window.dispatchEvent(new CustomEvent('dweb-frame',{detail:s}));}
 async function command(p){
  cuePriority=Date.now();
  if(server){try{const r=await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});if(!r.ok)throw Error();display(await r.json());}catch{offline();}return;}
@@ -30,7 +30,5 @@ async function command(p){
 }
 if(bus)bus.onmessage=e=>{if(e.data.source==='preview-clock')return;if(e.data.request)publish(snapshot());else if(Number.isFinite(e.data.time)){apply(e.data);publish(snapshot());}};
 window.addEventListener('dweb-command',e=>command(e.detail));
-['play','pause','reset'].forEach(cmd=>document.getElementById(cmd).onclick=()=>command({cmd}));
-document.getElementById('scene').onchange=e=>command({cmd:'goto',stage:+e.target.value});
 document.getElementById('guide').onclick=e=>e.target.setAttribute('aria-pressed',main.classList.toggle('guide'));
 async function observe(){if(server){try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw Error();display(await r.json());}catch{offline();}}else{const s=snapshot();publish(s);display(s);}setTimeout(observe,250);}observe();
