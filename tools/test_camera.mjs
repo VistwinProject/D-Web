@@ -28,8 +28,8 @@ test('IH and hood fade on their equipment cues, cool down and reset',()=>{
 });
 
 test("spoken object gets a moderate close-up, followed by a full-room hold",()=>{
- for(const t of [42.5, 60.0, 78.0, 100.5])assert.ok(cameraPose(shots,t).zoom>=1.4);
- for(const t of [0, 20, 35, 48, 70, 85, 94, 106, 128]){const pose=cameraPose(shots,t);assert.equal(pose.zoom,1);assert.deepEqual(pose.target,shots[0].target);}
+ for(const t of [42.5, 60.0, 100.5])assert.ok(cameraPose(shots,t).zoom>=1.4);
+ for(const t of [0, 20, 35, 48, 70, 78, 85, 94, 106, 128]){const pose=cameraPose(shots,t);assert.equal(pose.zoom,1);assert.deepEqual(pose.target,shots[0].target);}
  assert.ok(shots.every(s=>s.yaw===0&&s.pitch===0&&s.zoom<=1.65));
 });
 

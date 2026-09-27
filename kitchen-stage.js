@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {focusEmphasis} from './focus-emphasis.mjs';
 import {equipmentAppearance} from './equipment-appearance.mjs';
-import {smokeParticle} from './smoke-particles.mjs';
-import {kitchenShots,cameraPose} from './camera-shots.mjs?v=kitchen-15';
-import {kitchenLayout} from './kitchen-layout.mjs';
+import {freshAirParticle} from './fresh-air-particles.mjs';
+import {smokeParticle} from './smoke-particles.mjs?v=capture-18';
+import {kitchenShots,cameraPose} from './camera-shots.mjs?v=air-spread-17';
+import {kitchenLayout} from './kitchen-layout.mjs?v=air-spread-17';
 import {mergeGeometries} from './vendor/utils/BufferGeometryUtils.js';
 if(window.theaterActive) {
 const stage=document.querySelector('.stage');document.body.classList.add('cinema');
@@ -21,10 +22,10 @@ ui.querySelector('.metric-strip').innerHTML=metricNames.map((s,i)=>`<div><span>$
 const process=[['01 — SENSE','讓污染現形','六種空氣指標，描繪看不見的居家風險。'],['02 — MONITOR','持續感知','偵測室內變化，讓每次異常都有跡可循。'],['03 — DETECT','油煙正在擴散','暖色粒子由檯面升起，呈現污染的移動。'],['04 — EXHAUST','在源頭收束','污染粒子向上集中，經集煙口排出。'],['05 — PROTECT','建立潔淨屏障','青綠氣流補入，阻隔殘留油煙擴散。'],['06 — RESTORE','本輪淨化報告','PM2.5　200 → 10 µg/m³　·　模擬下降 95%']];
 const viewport=ui.querySelector('#kitchen-viewport');
 let renderer,scene,camera,room,glow,hoodLight,smoke,smokeGeo,fresh,freshGeo;
-const ihLines=[],hoodLines=[],ihRings=[],freshLines=[];
+const ihLines=[],hoodLines=[],ihRings=[];
 const neutralEquipment=new THREE.Color(0x8da5ac),warmIH=new THREE.Color(0xffa24d),hotIH=new THREE.Color(0xff493e),activeHood=new THREE.Color(0x62e89c);
-const origin=new THREE.Vector3(...kitchenLayout.stove),exhaust=new THREE.Vector3(...kitchenLayout.hood),inlet=new THREE.Vector3(...kitchenLayout.fresh);
-const smokeCount=90,freshCount=55;
+const origin=new THREE.Vector3(...kitchenLayout.stove),exhaust=new THREE.Vector3(...kitchenLayout.hood);
+const smokeCount=90,freshCount=100;
 const hash=n=>{const v=Math.sin(n*127.1)*43758.5453;return v-Math.floor(v);};
 let current={time:0,scene:0,progress:0,values:[480,.03,.2,8,10,20]},lastScene=-1;
 function box(w,h,d,material,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,25),new THREE.LineBasicMaterial({color:0xc1d4da,transparent:true,opacity:.6})));scene.add(m);return m;}
@@ -72,7 +73,6 @@ try{
  for(const dx of [-.16,.16]){const ring=new THREE.Mesh(new THREE.TorusGeometry(.09,.004,8,48),new THREE.MeshBasicMaterial({color:0xc1d4da,transparent:true,opacity:.65}));ring.rotation.x=-Math.PI/2;ring.position.set(origin.x+dx,.93,origin.z);scene.add(ring);ihRings.push(ring.material);}
  const pot=new THREE.Mesh(new THREE.CylinderGeometry(.095,.08,.075,48),metal);pot.position.set(origin.x-.16,.97,origin.z);pot.castShadow=true;scene.add(pot);const potWire=new THREE.LineSegments(new THREE.EdgesGeometry(pot.geometry,35),new THREE.LineBasicMaterial({color:0x8da5ac,transparent:true,opacity:.4}));pot.add(potWire);ihLines.push(potWire.material);
  for(const hoodPart of [box(.74,.075,.55,metal,exhaust.x,exhaust.y,exhaust.z),box(.61,.008,.4,glass,exhaust.x,exhaust.y-.042,exhaust.z)])hoodLines.push(hoodPart.children[0].material);
- const freshFrame=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.36,.13,.12)),new THREE.LineBasicMaterial({color:0x62e89c,transparent:true,opacity:.4}));freshFrame.position.copy(inlet);scene.add(freshFrame);freshLines.push(freshFrame.material);
  const texture=pointTexture();smokeGeo=new THREE.BufferGeometry();smokeGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(smokeCount*3),3));
  smoke=new THREE.Points(smokeGeo,new THREE.PointsMaterial({map:texture,color:0xff4036,size:.36,transparent:true,opacity:.95,depthWrite:false,depthTest:false,toneMapped:false}));smoke.renderOrder=5;scene.add(smoke);
  smokeGeo.setAttribute('particleAlpha',new THREE.Float32BufferAttribute(new Float32Array(smokeCount).fill(1),1));
@@ -81,7 +81,15 @@ try{
   shader.fragmentShader='varying float smokeAlpha;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.a *= smokeAlpha;');
  };
  smoke.material.customProgramCacheKey=()=> 'smoke-fade-1';
- freshGeo=new THREE.BufferGeometry();freshGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(freshCount*3),3));fresh=new THREE.Points(freshGeo,new THREE.PointsMaterial({map:texture,color:0x32ef82,size:.28,transparent:true,opacity:1,depthWrite:false,depthTest:false,toneMapped:false}));fresh.renderOrder=6;fresh.frustumCulled=false;smoke.frustumCulled=false;scene.add(fresh);
+ freshGeo=new THREE.BufferGeometry();freshGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(freshCount*3),3));
+ freshGeo.setAttribute('particleAlpha',new THREE.Float32BufferAttribute(new Float32Array(freshCount),1));
+ fresh=new THREE.Points(freshGeo,new THREE.PointsMaterial({map:texture,color:0x72dcb9,size:.28,transparent:true,opacity:.8,depthWrite:false,depthTest:false,toneMapped:false}));
+ fresh.material.onBeforeCompile=shader=>{
+  shader.vertexShader='attribute float particleAlpha; varying float freshAlpha;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nfreshAlpha = particleAlpha;');
+  shader.fragmentShader='varying float freshAlpha;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.a *= freshAlpha;');
+ };
+ fresh.material.customProgramCacheKey=()=> 'fresh-spread-1';
+ fresh.renderOrder=6;fresh.frustumCulled=false;smoke.frustumCulled=false;scene.add(fresh);
  // Correct source kitchen bay, excluding the former dining/storage crop.
  const kitchenFurniture=new Set(['Group280','Group282','Group283','Group284','Group628','Mesh164','Mesh165','Mesh166','Mesh167','Mesh168','Mesh169','Mesh170','Mesh171','Componen55']);
  new GLTFLoader().load('assets/kitchen.glb?v=correct-kitchen-16',g=>{
@@ -131,15 +139,24 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  const purificationStart=window.D_SHOW.starts[5],clearing=t>=purificationStart;
  smoke.visible=!opening&&i!==1&&!(window.D_SHOW&&i===2&&t<window.D_SHOW.events.heatOn)&&t<purificationStart+22;
  smoke.material.opacity=i===0?.6:i===2?1:i===3?.95:.55;
- const exhausting=i===3&&!awaitingExhaust;
- for(let k=0;k<smokeCount;k++){const point=smokeParticle(k,t,{purificationStart,exhausting,drifting:i===2||awaitingExhaust});
- const intake=point.y/1.27;
- arr[k*3]=origin.x+point.x;arr[k*3+1]=origin.y+(exhausting?intake*(exhaust.y-origin.y):point.y);arr[k*3+2]=origin.z+(exhausting?point.z+(exhaust.z-origin.z)*intake:-point.z);alphas[k]=point.alpha*(exhausting?1-Math.max(0,(intake-.8)/.2):1);}
+ const exhausting=t>=window.D_SHOW.events.exhaustOn;
+ const hoodOffset=exhaust.clone().sub(origin).toArray();
+ for(let k=0;k<smokeCount;k++){
+  const point=smokeParticle(k,t,{purificationStart,exhaustOn:window.D_SHOW.events.exhaustOn,hoodOffset});
+  arr[k*3]=origin.x+point.x;arr[k*3+1]=origin.y+point.y;arr[k*3+2]=origin.z+point.z;alphas[k]=point.alpha;
+ }
+ viewport.dataset.smokeCapture=String(exhausting);
  smokeGeo.attributes.position.needsUpdate=true;
  smokeGeo.attributes.particleAlpha.needsUpdate=true;
  viewport.dataset.smokeEmitting=String(smoke.visible&&!clearing);viewport.dataset.smokeRemaining=String(Array.from(alphas).filter(a=>a>.001).length);
- fresh.visible=i===1||i>=4;fresh.material.opacity=i===5?.65+.35*(1-p):1;
- const fp=freshGeo.attributes.position.array;for(let k=0;k<freshCount;k++){const f=(t*.18+hash(k+981))%1;fp[k*3]=inlet.x+f*1.7;fp[k*3+1]=inlet.y+Math.sin(f*Math.PI)*.28+Math.sin(k)*.1;fp[k*3+2]=inlet.z-f*.4+Math.cos(k)*.1;}freshGeo.attributes.position.needsUpdate=true;
+ fresh.visible=i>=4&&t>=window.D_SHOW.events.freshOn;fresh.material.opacity=i===5?.65:.85;
+ const fp=freshGeo.attributes.position.array,fa=freshGeo.attributes.particleAlpha.array;
+ for(let k=0;k<freshCount;k++){
+  const particle=freshAirParticle(k,t,window.D_SHOW.events.freshOn);
+  fp[k*3]=particle.x;fp[k*3+1]=particle.y;fp[k*3+2]=particle.z;fa[k]=particle.alpha;
+ }
+ freshGeo.attributes.position.needsUpdate=true;freshGeo.attributes.particleAlpha.needsUpdate=true;
+ viewport.dataset.freshPlacement='unverified';viewport.dataset.freshPattern='distributed-room-mixing';
  glow.intensity=i===2?1+p*2:i===3?2:i===4?2:1;
  const appearance=equipmentAppearance(t,window.D_SHOW.events,window.D_SHOW.duration);
  const {weights,pulse}=cameraShots?focusEmphasis(cameraShots,t,cameraMotionPreference.matches):{weights:{},pulse:1};
@@ -147,13 +164,12 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  const ihColor=neutralEquipment.clone().lerp(warmIH,appearance.heatLevel).lerp(hotIH,appearance.heatLevel*appearance.heatRed);
  for(const material of [...ihLines,...ihRings]){material.color.copy(ihColor);material.opacity=(.4+.55*appearance.heatLevel)*breathe("ih");material.color.lerp(new THREE.Color(0xffb778),(weights.ih||0)*pulse*.28);}
  for(const material of hoodLines){material.color.copy(neutralEquipment).lerp(activeHood,appearance.hoodLevel);material.opacity=(.4+.55*appearance.hoodLevel)*breathe("hood");material.color.lerp(new THREE.Color(0xbaffd6),(weights.hood||0)*pulse*.32);}
- for(const material of freshLines)material.opacity=.35+.6*(weights.fresh||0)*pulse;
  viewport.dataset.ihHeat=appearance.heatLevel.toFixed(3);viewport.dataset.hoodActive=appearance.hoodLevel.toFixed(3);
  updateCamera(t);
  // Orthographic cameras do not apply distance attenuation to point sprites.
  const pixelsPerMetre=viewport.clientHeight*camera.zoom/(camera.top-camera.bottom);
- smoke.material.size=.10*pixelsPerMetre;fresh.material.size=.08*pixelsPerMetre;
- pin('#hobPin',origin,i===2);pin('#hoodPin',exhaust,i===3);pin('#freshPin',inlet,i===4);
+ smoke.material.size=.10*pixelsPerMetre;fresh.material.size=.065*pixelsPerMetre;
+ pin('#hobPin',origin,i===2);pin('#hoodPin',exhaust,i===3);ui.querySelector('#freshPin').hidden=true;
  renderer.render(scene,camera);
 }
 window.addEventListener('dweb-frame',e=>update(e.detail));

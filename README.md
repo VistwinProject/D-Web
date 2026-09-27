@@ -117,3 +117,8 @@ IH 預設跟隨劇場六段。01 紫色待機、02 綠色偵測、03 紅色加�
 
 
 2026-09-28 廚房區塊修正：原裁切範圍其實包含長桌及收納區，已從原始 0820 場地 3DS 重新擷取 X 1290–1585、Y 789–930 cm 的廚房。保留原檯面 Group283、上下櫃與水槽 Mesh164，排除相鄰收納區的裁切碎片。IH 與櫃下排煙示意對齊水槽旁的空檯面；鏡頭改由廚房正面取等角視角，全景保留邊界，設備特寫最多約 1.33 倍。正交視角的氣流點尺寸按投影比例換算。来源追溯見 assets/kitchen-source.json；重建使用 tools/export_kitchen.py。
+
+
+2026-09-28 氣流修正：負壓啟動後的捕集狀態由 exhaustOn 決定，不再因切到第五幕而恢復自由擴散。第六幕停止新增紅色粒子，保留現有粒子，持續向集煙口收束並於 6–11 秒內淡出。原先新風方框位置未經 HVAC 圖面確認，現已移除方框、入口標籤及定點特寫；保留全景的分散補氣／混合示意，並僅在新風啟動後顯示。綠色粒子採不同路徑、速度及淡出時長，分布於櫃體前的室內空間，避免穿過櫃體；這不是風口定位或 CFD 結果。
+參考氣流擴散與室內混合的概念：[Price Industries Air Distribution Engineering Guide](https://priceindustries.com/wp-content/uploads/Assets/literature/engineering-design-guides/air-distribution-engineering-guide.pdf)。實際風口位置、形式、送風方向及風量仍待現場 HVAC 圖或設備定位資料確認。
+验证：node --test tools/test_smoke.mjs tools/test_fresh_air.mjs tools/test_camera.mjs tools/test_kitchen_layout.mjs。
