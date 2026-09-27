@@ -26,8 +26,8 @@ test('network errors get bounded retries and a usable fallback state',()=>{
  assert.equal(s.video.loads,2);assert.equal(s.jobs.length,0);assert.equal(s.video.dataset.filmState,'unavailable');
 });
 test('a stalled load recovers without stalling the exhibition clock',()=>{
- const s=setup();s.video.readyState=0;s.control.sync(16,true,16000);assert.equal(s.jobs.length,1);
- s.control.sync(17,true,17000);assert.equal(s.jobs.length,1);
+ const s=setup();s.video.readyState=0;s.control.sync(16,true,16000);assert.equal(s.jobs.length,0);s.control.sync(61,true,61000);assert.equal(s.jobs.length,1);
+ s.control.sync(62,true,62000);assert.equal(s.jobs.length,1);
 });
 
 test('slow streaming never seeks ahead to chase the exhibition clock',()=>{

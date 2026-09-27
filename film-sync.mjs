@@ -35,7 +35,7 @@ export function createFilmSync(video,{schedule=setTimeout,now=()=>performance.no
    }).finally(()=>{pending=false;if(!playing)video.pause();});
   }
   if(video.readyState<2||video.seeking){
-   if(shouldPlay&&stamp-progressAt>15000)recover();
+   if(shouldPlay&&stamp-progressAt>60000)recover();
    return;
   }
   state('ready');

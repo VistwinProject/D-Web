@@ -1,4 +1,4 @@
-import {createFilmSync} from './film-sync.mjs?v=stream-3';
+import {createFilmSync} from './film-sync.mjs?v=stream-4';
 if(document.documentElement.dataset.player==='cinema'){
  const video=document.getElementById('v0');
  window.DFilm=createFilmSync(video);
