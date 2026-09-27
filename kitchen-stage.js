@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {focusEmphasis} from './focus-emphasis.mjs';
 import {equipmentAppearance} from './equipment-appearance.mjs';
+import {smokeParticle} from './smoke-particles.mjs';
 import {kitchenShots,cameraPose} from './camera-shots.mjs?v=continuous-10';
 import {mergeGeometries} from './vendor/utils/BufferGeometryUtils.js';
 if(window.theaterActive) {
@@ -71,6 +72,12 @@ try{
  const freshFrame=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.36,.13,.12)),new THREE.LineBasicMaterial({color:0x62e89c,transparent:true,opacity:.4}));freshFrame.position.copy(inlet);scene.add(freshFrame);freshLines.push(freshFrame.material);
  const texture=pointTexture();smokeGeo=new THREE.BufferGeometry();smokeGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(smokeCount*3),3));
  smoke=new THREE.Points(smokeGeo,new THREE.PointsMaterial({map:texture,color:0xff4036,size:.36,transparent:true,opacity:.95,depthWrite:false,depthTest:false,toneMapped:false}));smoke.renderOrder=5;scene.add(smoke);
+ smokeGeo.setAttribute('particleAlpha',new THREE.Float32BufferAttribute(new Float32Array(smokeCount).fill(1),1));
+ smoke.material.onBeforeCompile=shader=>{
+  shader.vertexShader='attribute float particleAlpha; varying float smokeAlpha;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nsmokeAlpha = particleAlpha;');
+  shader.fragmentShader='varying float smokeAlpha;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.a *= smokeAlpha;');
+ };
+ smoke.material.customProgramCacheKey=()=> 'smoke-fade-1';
  freshGeo=new THREE.BufferGeometry();freshGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(freshCount*3),3));fresh=new THREE.Points(freshGeo,new THREE.PointsMaterial({map:texture,color:0x32ef82,size:.28,transparent:true,opacity:1,depthWrite:false,depthTest:false,toneMapped:false}));fresh.renderOrder=6;fresh.frustumCulled=false;smoke.frustumCulled=false;scene.add(fresh);
  // Mesh305 is the oblique perimeter panel behind the kitchen, clipped from the adjoining bay.
  // Omit it from this cutaway view without changing the original asset.
@@ -103,11 +110,16 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  if(document.documentElement.dataset.cinemaStatus!=='ready') document.documentElement.dataset.cinemaStatus='ready';
  if(!renderer||!smoke)return;
  // All positions derive from the shared exhibition clock, not random frame state.
- const arr=smokeGeo.attributes.position.array;smoke.visible=!opening&&i!==1&&!(window.D_SHOW&&i===2&&t<window.D_SHOW.events.heatOn);smoke.material.opacity=i===0?.6:i===2?1:i===3?.95:i===4?.55:.3*(1-p);
+ const arr=smokeGeo.attributes.position.array,alphas=smokeGeo.attributes.particleAlpha.array;
+ const purificationStart=window.D_SHOW.starts[5],clearing=t>=purificationStart;
+ smoke.visible=!opening&&i!==1&&!(window.D_SHOW&&i===2&&t<window.D_SHOW.events.heatOn)&&t<purificationStart+22;
+ smoke.material.opacity=i===0?.6:i===2?1:i===3?.95:.55;
  const exhausting=i===3&&!awaitingExhaust;
- for(let k=0;k<smokeCount;k++){const f=(t*.22+hash(k+41))%1,a=hash(k+713)*Math.PI*2,spread=(exhausting?.4*(1-f):.06+f*.95)*Math.sqrt(hash(k+313));
- arr[k*3]=origin.x+Math.cos(a)*spread;arr[k*3+1]=origin.y+f*(exhausting?1.27:1.55);arr[k*3+2]=origin.z+Math.sin(a)*spread+(i===2||awaitingExhaust?f*.55:0);}
+ for(let k=0;k<smokeCount;k++){const point=smokeParticle(k,t,{purificationStart,exhausting,drifting:i===2||awaitingExhaust});
+ arr[k*3]=origin.x+point.x;arr[k*3+1]=origin.y+point.y;arr[k*3+2]=origin.z+point.z;alphas[k]=point.alpha;}
  smokeGeo.attributes.position.needsUpdate=true;
+ smokeGeo.attributes.particleAlpha.needsUpdate=true;
+ viewport.dataset.smokeEmitting=String(smoke.visible&&!clearing);viewport.dataset.smokeRemaining=String(Array.from(alphas).filter(a=>a>.001).length);
  fresh.visible=i===1||i>=4;fresh.material.opacity=i===5?.65+.35*(1-p):1;
  const fp=freshGeo.attributes.position.array;for(let k=0;k<freshCount;k++){const f=(t*.18+hash(k+981))%1;fp[k*3]=inlet.x+f*2.9;fp[k*3+1]=inlet.y+Math.sin(f*Math.PI)*.28+Math.sin(k)*.1;fp[k*3+2]=inlet.z+f*1.5+Math.cos(k)*.1;}freshGeo.attributes.position.needsUpdate=true;
  glow.intensity=i===2?1+p*2:i===3?2:i===4?2:1;
