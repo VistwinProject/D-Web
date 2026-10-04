@@ -36,6 +36,7 @@ const particles=story.querySelector('#particles');
 for(let i=0;i<65;i++) particles.insertAdjacentHTML('beforeend','<circle r="2" fill="#c0e6fa"/>');
 let anchor=performance.now(), pos=0, playing=false, lastScene=-1, lastRender=0, connected=false, external=null, lost=false, mode='auto',lastStamp=0;
 let ambientPos=Date.now()/1000%30,ambientAnchor=performance.now(),lastVideoSeek=-Infinity,ambientStarted=false;
+let xEpoch=null,xRevision=0;
 const endpoint=q.get('sync')|| (location.port==='8776'?'/api/state':null);
 let channel= !endpoint && typeof BroadcastChannel!=='undefined' ?new BroadcastChannel(q.get('syncChannel')||(q.get('preview')==='1'?'dweb-preview-six-scenes':'dweb-six-scenes')):null;
 const exhibitCue=!endpoint&&window.parent===window&&q.get('side')!=='right'&&typeof BroadcastChannel!=='undefined'?new BroadcastChannel('dweb-exhibit-cue'):null;
@@ -44,7 +45,7 @@ function publishExhibitCue(){exhibitCue?.postMessage({source:'preview-clock',own
 if(exhibitCue){exhibitCue.onmessage=e=>{if(e.data.request==='cue')publishExhibitCue();};setInterval(publishExhibitCue,250);document.addEventListener('visibilitychange',()=>{if(!document.hidden){cuePriority=Date.now();publishExhibitCue();}});}
 function time(){const raw=Math.max(0,pos+(playing?(performance.now()-anchor)/1000:0));const end=!endpoint&&['wait','hold'].includes(mode)?(starts[idx(pos)+1]||duration):duration;if(raw>=end){pos=end<duration?end-.001:duration;anchor=performance.now();playing=false;return pos;}return raw;}
 function idx(t){return starts.findLastIndex(s=>t>=s);}
-function updateState(s){if(s.stamp&&s.stamp<lastStamp)return;if(s.stamp){lastStamp=s.stamp;ambientPos=s.stamp;ambientAnchor=performance.now();}pos=s.time;anchor=performance.now();playing=s.playing;external=s.values||null;mode=s.mode||'auto';}
+function updateState(s){if(s.epoch&&s.epoch!==xEpoch){xEpoch=s.epoch;lastStamp=0;}if(s.stamp&&s.stamp<lastStamp)return;if(s.stamp){lastStamp=s.stamp;ambientPos=s.stamp;ambientAnchor=performance.now();}xRevision=s.revision??xRevision;pos=s.time;anchor=performance.now();playing=s.playing;external=s.values||null;mode=s.mode||'auto';}
 function localCommand(p){let t=time();const c=String(p.cmd||p.command||'').toLowerCase();
  if(['goto','stage','scene'].includes(c)){const n=Number(p.stage??p.n??p.value);if(!Number.isInteger(n)||n<1||n>6)return;t=starts[n-1];}
  if(['next','trigger','advance'].includes(c)){t=starts[Math.min(idx(t)+1,5)];if(mode==='wait')playing=true;}if(c==='prev')t=starts[Math.max(idx(t)-1,0)];
@@ -53,7 +54,7 @@ function localCommand(p){let t=time();const c=String(p.cmd||p.command||'').toLow
  if(c==='simulate')external=null;
  if(c==='data'){const vals=external?.slice()||S.values.slice();METRICS.forEach((m,i)=>{const v=p.values?.[i]??p[m.k];if(v!=null&&Number.isFinite(Number(v)))vals[i]=Math.max(0,Number(v));});external=vals;}
  pos=t;anchor=performance.now();}
-async function command(p){if(endpoint){try{const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});if(!r.ok)throw Error();updateState(await r.json());}catch{log('同步命令失敗，請確認同步服務','e');}return;}
+async function command(p){if(endpoint){try{const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...p,controlProtocol:'d-local-v2'})});if(!r.ok)throw Error();updateState(await r.json());}catch{log('同步命令失敗，請確認同步服務','e');}return;}
  localCommand(p);channel?.postMessage({time:time(),playing,values:external,mode});}
 window.addEventListener('dweb-command',e=>command(e.detail));
 control.querySelector('h2').textContent=`六段展演 · ${duration} 秒`;
@@ -67,7 +68,7 @@ show=i=>command({cmd:'goto',stage:i+1});filmKick=()=>{};
 function metricProgress(t,i){const begin=window.D_SHOW?(i===2?window.D_SHOW.events.heatOn:i===3?window.D_SHOW.events.exhaustOn:starts[i]):starts[i];return Math.max(0,(t-begin)/((starts[i+1]||duration)-begin));}
 sceneProgress=()=>{const t=time();return metricProgress(t,idx(t));};
 control.onclick=e=>{const b=e.target.closest('button');if(!b)return;command(b.dataset.scene?{cmd:'goto',stage:+b.dataset.scene}:{cmd:b.dataset.action});};
-control.querySelector('input').oninput=e=>{const t=+e.target.value;if(endpoint){fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd:'seek',time:t})}).then(r=>r.json()).then(updateState).catch(()=>{});}else{pos=t;anchor=performance.now();channel?.postMessage({time:t,playing,values:external,mode});}};
+control.querySelector('input').oninput=e=>{const t=+e.target.value;if(endpoint){fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd:'seek',time:t,controlProtocol:'d-local-v2'})}).then(r=>r.json()).then(updateState).catch(()=>{});}else{pos=t;anchor=performance.now();channel?.postMessage({time:t,playing,values:external,mode});}};
 document.getElementById('btnPlay').onclick=()=>command({cmd:playing?'pause':'play'});
 document.getElementById('btnNext').onclick=Dweb.next;document.getElementById('btnPrev').onclick=Dweb.prev;
 document.getElementById('mode').onchange=e=>command({cmd:'mode',value:e.target.value});
@@ -76,6 +77,8 @@ document.getElementById('ovScene').innerHTML='<option value="auto">依六段時�
 document.getElementById('ovScene').onchange=e=>{if(e.target.value!=='auto')Dweb.goto(+e.target.value);};
 document.addEventListener('keydown',e=>{if(typing(e))return;const k=e.key.toLowerCase();if('123456'.includes(k)&&k.length===1||[' ','n','q','w','e'].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(k===' ')command({cmd:playing?'pause':'play'});else if(k==='n')Dweb.next();else Dweb.goto(({q:1,w:4,e:5})[k]||+k);}},true);
 async function poll(){if(!endpoint)return;const begin=performance.now();try{const r=await fetch(endpoint,{cache:'no-store'});if(!r.ok)throw Error();const s=await r.json();s.time+=s.playing?(performance.now()-begin)/2000:0;updateState(s);connected=true;lost=false;}catch{connected=false;lost=true;playing=false;}
+ // Control receipts must not depend on requestAnimationFrame: hidden tabs stop drawing.
+ window.dispatchEvent(new CustomEvent('dweb-sync',{detail:{epoch:xEpoch,revision:xRevision,connected}}));
  document.getElementById('syncState').textContent=connected?'已同步 · 共用分鏡 / 影片 / 數據': '同步中斷 · 展演暫停，等待重新連線';setTimeout(poll,200);}
 poll();
 function frame(now){let t=time();if(!endpoint&&mode==='wait'&&t>=(starts[idx(pos)+1]||duration)-.002){pos=t;anchor=now;playing=false;}
@@ -92,7 +95,7 @@ function frame(now){let t=time();if(!endpoint&&mode==='wait'&&t>=(starts[idx(pos
  window.DFilm?.sync(t,playing,now);
 
  }
- window.dispatchEvent(new CustomEvent('dweb-frame',{detail:{time:t,scene:i,progress:p,playing,mode,values:S.values.slice(),external:!!external}}));
+ window.dispatchEvent(new CustomEvent('dweb-frame',{detail:{time:t,scene:i,progress:p,playing,mode,values:S.values.slice(),external:!!external,epoch:xEpoch,revision:xRevision,connected}}));
  if(!document.body.classList.contains('cinema')){
  story.querySelector('#barrier').setAttribute('opacity',i===4?'.8':'0');
  story.querySelectorAll('.pollutants>div').forEach((el,k)=>el.classList.toggle('active',k===Math.min(5,Math.floor(p*6))));

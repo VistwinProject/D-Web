@@ -20,6 +20,20 @@ GitHub Pages：https://VistwinProject.github.io/D-Web/
 
 ## 現場本機
 
+### X / iPad 控制（2026-10-04）
+
+X 主機連接 `http://127.0.0.1:8776`。播放主頁使用 `preview.html?x=1`，靜音驗證使用 `preview.html?x=1&audio=muted`（底部顯示「靜音測試」）。每個輸出只開一個 `x=1` 回報頁；其他預覽不加 `x=1`，可觀看同一服務的實際時間軸。
+
+隔離測試可另起 `python tools/serve.py --port 18776`，開啟 `http://127.0.0.1:18776/preview.html?x=1&audio=muted&sync=/api/state`。預覽會把指定的同步端點及靜音旗標傳給左右屏；未指定同步端點的靜態分享頁仍使用瀏覽器時鐘。測試 IH 跟隨使用同埠 `ih.html?sync=/api/state`。勿在正式 8776 另外開啟 `x=1` 頁搶佔既有輸出。
+
+目前 `ih.html` 載入的是 `ih-simple.js`：僅紅色爐面開關示意，提供跟隨劇場／開啟／關閉，沒有功率、溫度或濃度顯示；下方較早的完整 IH 說明不代表此版本。IH 頁不參與左右屏的 X ack，也不控制實體爐具。右屏廚房與氣流是同一劇場時間軸的視覺；本 repo 未提供另一套已接線的環境投影硬體控制。
+
+`/api/x/status` 分開回報服務、左右屏控制連線、前景顯示與重繪狀態；瀏覽器背景分頁不重繪，不等於控制失聯。開始、暫停、繼續、重播與回待機必須收到左右屏對應版本的確認，操作逾時不自動重送。實際片長以 `show.json` 為準。
+
+X 第一次接管時間軸後，舊頁面未標示版本的 `/api/state` 寫入會被拒絕，以免舊語音程式的自動暫停覆蓋 X。新版本機操作使用 `controlProtocol: "d-local-v2"`；其他直接呼叫此寫入接口的整合也需跟進。讀取與靜態預覽不受影響，服務重啟後恢復尚未接管狀態。這是控制協定相容性檢查，不是認證機制。
+
+X 模式的語音若未獲瀏覽器授權，頁面顯示「語音未啟用」，不會自行暫停全場。現場聲音、IH 獨立投影與實體設備仍須另外驗收。
+
 執行 `python tools/serve.py --port 8776`，開啟 `http://127.0.0.1:8776/preview.html`。
 兩個實體畫面分別使用 `Dweb.html?side=left`、`Dweb.html?side=right`。跨電腦需連到同一 LAN 同步主機；GitHub Pages 的瀏覽器同步不提供跨電腦同步。保留原 Trigger、WebSocket / HTTP 控制。
 

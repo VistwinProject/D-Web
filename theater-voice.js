@@ -5,20 +5,24 @@
  const audio=document.createElement('audio');audio.id='theaterVoice';audio.src=show.audio;audio.preload='auto';audio.loop=false;audio.muted=q.get('audio')==='muted';document.body.append(audio);
  const button=document.createElement('button');button.id='voiceToggle';button.type='button';
  const toolbar=document.querySelector('.preview-player .playback');if(toolbar)toolbar.insertBefore(button,toolbar.querySelector('#reset'));else document.body.append(button);
- let enabled=true,pending=false,state=null,stateAt=0,lastSeek=-Infinity,lastTarget=null,fallbackUsed=false;
+ const silentTest=q.get('audio')==='muted';
+ let enabled=!silentTest,pending=false,state=null,stateAt=0,lastSeek=-Infinity,lastTarget=null,fallbackUsed=false,needsActivation=false;
+ button.disabled=silentTest;
  const owner=crypto.randomUUID(),ownership=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('dweb-voice-owner'):null;
- function label(){button.textContent='語音：'+(enabled?'開':'關');button.setAttribute('aria-pressed',String(enabled));}
+ function label(){button.textContent=silentTest?'靜音測試':needsActivation?'語音未啟用 · 點此開啟':'語音：'+(enabled?'開':'關');button.setAttribute('aria-pressed',String(enabled));}
  function mute(){enabled=false;audio.muted=true;audio.pause();label();}
  function blocked(error){
   // Seeking or pausing can abort play(); that is not an autoplay denial.
   if(error?.name!=='NotAllowedError')return;
-  audio.pause();window.dispatchEvent(new CustomEvent('dweb-command',{detail:{cmd:'pause'}}));
+  audio.pause();
+  if(q.get('x')==='1'){enabled=false;needsActivation=true;audio.muted=true;label();return;}
+  window.dispatchEvent(new CustomEvent('dweb-command',{detail:{cmd:'pause'}}));
  }
  function claim(){if(q.get('audio')!=='muted')ownership?.postMessage({owner});}
  function play(){if(pending)return;pending=true;audio.play().catch(blocked).finally(()=>{pending=false;if(!enabled||state&&!state.playing)audio.pause();});}
  function start(){if(!enabled)return;claim();audio.muted=q.get('audio')==='muted';play();}
  ownership?.addEventListener('message',e=>{if(e.data.owner!==owner)mute();});
- button.onclick=()=>{enabled=!enabled;audio.muted=!enabled||q.get('audio')==='muted';label();if(enabled){claim();if(state?.playing)start();sync();}else audio.pause();};
+ button.onclick=()=>{if(silentTest)return;needsActivation=false;enabled=!enabled;audio.muted=!enabled;label();if(enabled){claim();if(state?.playing)start();sync();}else audio.pause();};
  window.addEventListener('dweb-user-play',start);
  function sync(){
   if(!enabled||!state||!audio.readyState)return;
