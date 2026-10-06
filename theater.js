@@ -9,11 +9,11 @@ const scenes=[
  ['ARRIVAL','看不見，也需要被看見','每一次呼吸，都與室內空氣相連。','PM2.5 懸浮微粒 · TVOC 揮發性有機物 · HCHO 甲醛',normal,normal,'flat'],
  ['DETECTION','安靜守候，每一次呼吸','六項空氣指標，持續感知家的變化。','正常偵測 · 建立室內空氣基準',normal,normal,'flat'],
  ['COOKING','一餐之間，空氣正在改變','烹飪油煙從爐台升起，向室內擴散。','烹飪污染 · PM2.5 與 TVOC 上升',normal,peak,'up'],
- ['NEGATIVE PRESSURE','在源頭，帶走油煙','集煙口形成負壓，將污染收束並排出。','負壓排煙 · 污染粒子朝集煙口移動',peak,reduced,'down'],
+ ['AI ALERT','察覺變化，提醒切換強檔','請使用者將抽油煙機切換至強檔。','AI 提醒 · 依提醒手動排煙示意',peak,reduced,'down'],
  ['POSITIVE PRESSURE','讓乾淨的空氣，向內流動','新風補入室內，建立守護家的空氣屏障。','正壓守護 · 潔淨氣流阻隔外來污染',reduced,clean,'down'],
  ['PURIFICATION','把安心，留在家裡','持續淨化，讓空氣回到平穩。','淨化報告 · 從感知、排煙到持續守護',clean,clean,'flat']
 ];
-SCENES.splice(0,SCENES.length,...scenes.map((s,i)=>({tag:`0${i+1} · ${s[0]}`,en:s[0],name:['隱形風險','正常偵測','烹飪污染','負壓排煙','正壓守護','持續淨化'][i],cls:`s${i%3+1}`,trend:s[6],from:s[4],to:s[5],beats:[[0,s[3],'展演模擬 · 非現場量測']]})));
+SCENES.splice(0,SCENES.length,...scenes.map((s,i)=>({tag:`0${i+1} · ${s[0]}`,en:s[0],name:['隱形風險','正常偵測','烹飪污染','AI 提醒','正壓守護','持續淨化'][i],cls:`s${i%3+1}`,trend:s[6],from:s[4],to:s[5],beats:[[0,s[3],'展演模擬 · 非現場量測']]})));
 const stage=document.querySelector('.stage'), story=document.createElement('section');story.className='story';
 story.innerHTML=`<header><span>寶舖 · 居家風險劇場</span><span>空氣的旅程 / AIR IN MOTION</span></header><h1></h1><p class="desc"></p>
 <svg class="air-diagram" viewBox="0 0 560 400" aria-label="廚房氣流原理示意：左側爐台與集煙口，右側新風入口">

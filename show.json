@@ -1,30 +1,30 @@
 {
-  "version": "2026-09-28-voiced-exit",
-  "duration": 140.816,
+  "version": "2026-10-07-owner-revision",
+  "duration": 120.368,
   "starts": [
     0.0,
-    51.668,
-    59.927,
-    79.854,
-    93.232,
-    102.611
+    46.608,
+    54.367,
+    73.094,
+    82.493,
+    91.372
   ],
   "events": {
-    "heatOn": 70.815,
-    "heatOff": 110.569,
-    "exhaustOn": 87.003,
-    "freshOn": 93.232
+    "heatOn": 64.655,
+    "heatOff": 98.73,
+    "exhaustOn": 79.493,
+    "freshOn": 82.493
   },
-  "audio": "assets/audio/theatre-mix.mp3?v=8d653eb0f4",
+  "audio": "assets/audio/theatre-mix.mp3?v=39467f203b",
   "clips": [
     {
       "id": "d00-intro",
       "scene": 1,
       "role": "旁白",
       "voice": "怡婷",
-      "text": "當我們為了防噪防塵而緊閉窗門，家，真的就是避風港嗎？其實，呼吸累積的二氧化碳、高溫烹飪的油煙微粒，與家具釋放出的 TVOC 化學物質正默默威脅著每個人的健康。接下來，「居家風險」劇場將讓這些隱形危機「直接現形」，帶您親眼見證房子的大腦如何聯動負壓與正壓阻隔，在您毫無察覺的無聲中完成深層淨化，守護全家人的清淨呼吸。",
-      "start": 1.0,
-      "end": 37.819,
+      "text": "當我們為了防噪防塵而緊閉窗門，家，真的就是避風港嗎？其實，呼吸累積的二氧化碳、高溫烹飪的油煙微粒，與家具釋放出的 TVOC 化學物質正默默威脅著每個人的健康。接下來，「居家風險」劇場將讓這些隱形危機「直接現形」，帶您親眼見證房子的大腦如何聯動正壓阻隔，在您毫無察覺時完成深層淨化，守護全家人的清淨呼吸。",
+      "start": 0.75,
+      "end": 35.529,
       "file": "assets/audio/d00-intro.wav"
     },
     {
@@ -32,9 +32,9 @@
       "scene": 1,
       "role": "旁白",
       "voice": "怡婷",
-      "text": "歡迎來到居家風險劇場。看不見的空氣，也會隨著生活改變。一頓晚餐，讓我們看見房子如何察覺風險，守護家人的呼吸。",
-      "start": 38.619,
-      "end": 51.168,
+      "text": "歡迎來到「居家風險劇場」。一頓晚餐，讓我們看見房子如何察覺隱形風險，守護家人的呼吸。",
+      "start": 35.979,
+      "end": 46.358,
       "file": "assets/audio/d01-narrator.wav"
     },
     {
@@ -43,8 +43,8 @@
       "role": "旁白",
       "voice": "怡婷",
       "text": "烹飪前，六項空氣指標維持平穩。持續偵測，才能發現接下來的變化。",
-      "start": 52.168,
-      "end": 59.427,
+      "start": 46.858,
+      "end": 54.117,
       "file": "assets/audio/d02-narrator.wav"
     },
     {
@@ -53,8 +53,8 @@
       "role": "孩子",
       "voice": "軒軒",
       "text": "媽！我回來了，肚子好餓，晚餐好了嗎？",
-      "start": 60.427,
-      "end": 63.996,
+      "start": 54.617,
+      "end": 58.186,
       "file": "assets/audio/d03-child.wav"
     },
     {
@@ -63,8 +63,8 @@
       "role": "媽媽",
       "voice": "婉婷",
       "text": "等我一下，我現在就來準備。你先去做功課，等等就好囉！",
-      "start": 64.796,
-      "end": 70.815,
+      "start": 58.636,
+      "end": 64.655,
       "file": "assets/audio/d03-mother.wav"
     },
     {
@@ -73,8 +73,8 @@
       "role": "旁白",
       "voice": "怡婷",
       "text": "鍋裡升起的油煙，正向室內擴散。細懸浮微粒與揮發性有機物，也跟著增加。",
-      "start": 71.615,
-      "end": 79.354,
+      "start": 65.105,
+      "end": 72.844,
       "file": "assets/audio/d03-narrator.wav"
     },
     {
@@ -83,19 +83,9 @@
       "role": "空氣管家",
       "voice": "文彬",
       "text": "偵測到廚房污染指標上升，請將抽油煙機切換至強檔。",
-      "start": 80.354,
-      "end": 86.203,
+      "start": 73.344,
+      "end": 79.193,
       "file": "assets/audio/d04-alert.wav"
-    },
-    {
-      "id": "d04-exhaust",
-      "scene": 4,
-      "role": "空氣管家",
-      "voice": "文彬",
-      "text": "負壓排煙已啟動，將油煙集中帶離，減少向室內擴散。",
-      "start": 87.003,
-      "end": 92.732,
-      "file": "assets/audio/d04-exhaust.wav"
     },
     {
       "id": "d05-fresh",
@@ -103,8 +93,8 @@
       "role": "空氣管家",
       "voice": "文彬",
       "text": "新風與空氣清淨已啟動。清新空氣持續送入，減少油煙向休息空間擴散。",
-      "start": 93.732,
-      "end": 102.111,
+      "start": 82.743,
+      "end": 91.122,
       "file": "assets/audio/d05-fresh.wav"
     },
     {
@@ -113,8 +103,8 @@
       "role": "孩子",
       "voice": "軒軒",
       "text": "哇！感覺好好吃，媽，要不要一起來吃？",
-      "start": 103.111,
-      "end": 106.8,
+      "start": 91.622,
+      "end": 95.311,
       "file": "assets/audio/d06-child-invite.wav"
     },
     {
@@ -123,8 +113,8 @@
       "role": "媽媽",
       "voice": "婉婷",
       "text": "好哇！我關一下爐火，就好囉！",
-      "start": 107.6,
-      "end": 110.569,
+      "start": 95.761,
+      "end": 98.73,
       "file": "assets/audio/d06-mother.wav"
     },
     {
@@ -133,8 +123,8 @@
       "role": "孩子",
       "voice": "軒軒",
       "text": "好喔！我要開動了！",
-      "start": 111.369,
-      "end": 113.458,
+      "start": 99.18,
+      "end": 101.269,
       "file": "assets/audio/d06-child-eat.wav"
     },
     {
@@ -142,45 +132,37 @@
       "scene": 6,
       "role": "旁白",
       "voice": "怡婷",
-      "text": "烹飪結束後，淨化仍持續進行。從負壓防護、正壓守護，到持續淨化，我們觀察變化，也確認處置結果。因為每一口呼吸、每一位家人，都值得被好好照顧。",
-      "start": 114.258,
-      "end": 131.007,
+      "text": "烹飪結束後，淨化仍持續進行。從正壓守護，到持續淨化，我們觀察變化，也確認處置結果。因為每一口呼吸、每一位家人，都值得被好好照顧。",
+      "start": 101.719,
+      "end": 116.868,
       "file": "assets/audio/d06-narrator.wav"
-    },
-    {
-      "id": "d07-farewell",
-      "scene": 6,
-      "role": "旁白",
-      "voice": "怡婷",
-      "text": "居家風險劇場在此告一段落，請前往下一展區。",
-      "start": 131.807,
-      "end": 136.816,
-      "file": "assets/audio/d07-farewell.wav"
     }
   ],
+  "closingStart": 117.368,
+  "exhaustMode": "manual-demonstration-after-alert",
   "intro": {
-    "start": 1.0,
-    "end": 37.819,
-    "text": "當我們為了防噪防塵而緊閉窗門，家，真的就是避風港嗎？其實，呼吸累積的二氧化碳、高溫烹飪的油煙微粒，與家具釋放出的 TVOC 化學物質正默默威脅著每個人的健康。接下來，「居家風險」劇場將讓這些隱形危機「直接現形」，帶您親眼見證房子的大腦如何聯動負壓與正壓阻隔，在您毫無察覺的無聲中完成深層淨化，守護全家人的清淨呼吸。",
-    "bodyStart": 37.619
+    "start": 0.75,
+    "end": 35.529,
+    "text": "當我們為了防噪防塵而緊閉窗門，家，真的就是避風港嗎？其實，呼吸累積的二氧化碳、高溫烹飪的油煙微粒，與家具釋放出的 TVOC 化學物質正默默威脅著每個人的健康。接下來，「居家風險」劇場將讓這些隱形危機「直接現形」，帶您親眼見證房子的大腦如何聯動正壓阻隔，在您毫無察覺時完成深層淨化，守護全家人的清淨呼吸。",
+    "bodyStart": 35.754000000000005
   },
   "soundEffects": [
     {
       "id": "cooking-sizzle",
-      "start": 70.815,
-      "end": 110.569,
+      "start": 64.655,
+      "end": 98.73,
       "file": "assets/audio/sfx/cooking-sizzle.wav"
     },
     {
       "id": "extractor-start-and-run",
-      "start": 87.003,
-      "end": 140.816,
+      "start": 79.493,
+      "end": 120.368,
       "file": "assets/audio/sfx/extractor-start.wav"
     },
     {
       "id": "fresh-air-ventilation",
-      "start": 93.232,
-      "end": 140.816,
+      "start": 82.493,
+      "end": 120.368,
       "file": "assets/audio/sfx/ventilation.wav"
     }
   ],

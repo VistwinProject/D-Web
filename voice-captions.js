@@ -3,7 +3,7 @@ import {equipmentAt} from './presentation-cues.mjs';
 import {icon,roles} from './presentation-icons.mjs?v=roles-2';
 const show=window.D_SHOW;
 if(show){
- const cues=[...buildCaptions(show.clips.filter(c=>c.id!=="d07-farewell"),28),{id:"d-farewell",text:"居家風險劇場在此告一段落，請前往下一展區。",start:show.clips.find(c=>c.id==="d07-farewell").start,end:Infinity,closing:true}],reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ const cues=[...buildCaptions(show.clips.filter(c=>c.id!=="d07-farewell"),28),{id:"d-farewell",text:"居家風險劇場在此告一段落，請前往下一展區。",start:show.closingStart,end:Infinity,closing:true}],reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let previous='',host,rail;
  window.addEventListener('dweb-frame',({detail:d})=>{
   const found=document.querySelector('.left-screen .narration');

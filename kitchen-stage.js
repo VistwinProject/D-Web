@@ -1,3 +1,4 @@
+import {displayUnits,displayValue} from './display-units.mjs';
 import * as THREE from 'three';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {focusEmphasis} from './focus-emphasis.mjs';
@@ -9,17 +10,17 @@ import {kitchenLayout} from './kitchen-layout.mjs?v=air-spread-17';
 import {mergeGeometries} from './vendor/utils/BufferGeometryUtils.js';
 if(window.theaterActive) {
 const stage=document.querySelector('.stage');document.body.classList.add('cinema');
-const names=['隱形風險','正常偵測','烹飪污染','負壓排煙','正壓守護','持續淨化'];
+const names=['隱形風險','正常偵測','烹飪污染','AI 提醒','正壓守護','持續淨化'];
 const tones=['#a69bf5','#70df9f','#ff6258','#ffc278','#54ddab','#a9e1b8'];
-const titles=['看不見的風險，\n從這裡被看見。','家的空氣，\n正在被照顧。','一餐之間，\n空氣正在改變。','在污染源頭，\n把油煙帶走。','讓乾淨的空氣，\n守護生活空間。','回到平穩，\n把安心留在家。'];
-const descriptions=['呼吸、家具與烹飪，都會改變室內空氣。讓隱形的變化，成為看得見的訊息。','持續觀察六項指標，建立家的空氣基準。','爐台油煙向室內擴散，細懸浮微粒與揮發性有機物持續升高。','在集煙口形成負壓，將油煙集中帶離，減少向室內擴散。','補入過濾後的新鮮空氣，以氣流阻隔污染進入休息空間。','烹飪結束後持續淨化，確認空氣數值回穩，再回報處理結果。'];
-const states=['辨識隱形污染','空氣品質穩定','烹飪污染升高','正在集中排煙','潔淨氣流守護','淨化完成'];
+const titles=['潛藏的隱形風險，\n在這裡讓你辨識。','家的空氣，\n正在被照顧。','一餐之間，\n空氣正在改變。','察覺空氣變化，\n提醒切換強檔。','讓乾淨的空氣，\n守護生活空間。','回到平穩，\n把安心留在家。'];
+const descriptions=['呼吸、家具與烹飪，都會改變室內空氣。讓隱形的變化，成為看得見的訊息。','持續觀察六項指標，建立家的空氣基準。','爐台油煙向室內擴散，細懸浮微粒與揮發性有機物持續升高。','污染指標升高時發出提醒，請使用者將抽油煙機切換至強檔。','補入過濾後的新鮮空氣，以氣流阻隔污染進入休息空間。','烹飪結束後持續淨化，確認空氣數值回穩，再回報處理結果。'];
+const states=['辨識隱形污染','空氣品質穩定','烹飪污染升高','手動排煙示意','潔淨氣流守護','淨化完成'];
 const ui=document.createElement('section');ui.className='cinema-ui';
 ui.innerHTML=`<div class="left-screen"><header><span>寶舖 · 居家風險劇場</span><span>D / AIR</span></header><div class="chapter"><b class="chapter-number">01</b><span>/ 06</span><i class="chapter-name">隱形風險</i></div><h1></h1><section class="narration" aria-label="語音字幕"></section><div class="state-label"><i></i><span></span></div><div class="primary-metric"><div><span id="primary-label">PM2.5</span><small id="primary-desc">細懸浮微粒</small></div><strong id="primary-value">10</strong><span id="primary-unit">µg/m³</span><p id="primary-note"></p></div><div class="metric-strip"></div><div class="history"><span>空氣變化 · 展演歷程</span><svg viewBox="0 0 400 65" preserveAspectRatio="none"><path id="history-fill"/><path id="history-line"/></svg></div><footer><span>展演模擬 · 非現場量測</span><span id="leftTime">00 / 90 s</span></footer></div><div class="right-screen"><header><span>廚房 · 空間演示</span><span>3D VIEW</span></header><div class="chapter"><b class="chapter-number">01</b><span>/ 06</span><i class="chapter-name">隱形風險</i></div><div id="kitchen-viewport" role="img" aria-label="由場地模型轉換的立體廚房，呈現檯面、櫃體及展演氣流"><div id="modelStatus">正在載入場地模型</div><span class="equipment-pin" id="hoodPin">集煙口</span><span class="equipment-pin" id="hobPin">烹飪源</span><span class="equipment-pin" id="freshPin">潔淨新風</span></div><div class="scene-explanation"><span class="process-number">01 — SENSE</span><h2></h2><p></p></div><footer><span>場地模型 · 氣流與設備為展演示意</span><span class="chapter-name">隱形風險</span></footer></div>`;
 stage.append(ui);
-const metricNames=['CO₂','HCHO','TVOC','PM1','PM2.5','PM10'];const units=['ppm','ppm','mg/m³','µg/m³','µg/m³','µg/m³'];
+const metricNames=['CO₂','HCHO','TVOC','PM1','PM2.5','PM10'];const units=displayUnits;
 ui.querySelector('.metric-strip').innerHTML=metricNames.map((s,i)=>`<div><span>${s}</span><strong data-metric="${i}">—</strong><small>${units[i]}</small></div>`).join('');
-const process=[['01 — SENSE','讓污染現形','六種空氣指標，描繪看不見的居家風險。'],['02 — MONITOR','持續感知','偵測室內變化，讓每次異常都有跡可循。'],['03 — DETECT','油煙正在擴散','暖色粒子由檯面升起，呈現污染的移動。'],['04 — EXHAUST','在源頭收束','污染粒子向上集中，經集煙口排出。'],['05 — PROTECT','建立潔淨屏障','青綠氣流補入，阻隔殘留油煙擴散。'],['06 — RESTORE','本輪淨化報告','PM2.5　200 → 10 µg/m³　·　模擬下降 95%']];
+const process=[['01 — SENSE','讓污染現形','六種空氣指標，解析看不見的居家風險。'],['02 — MONITOR','即時感知','偵測室內變化，讓每次異常都有跡可循。'],['03 — DETECT','油煙正在擴散','暖色粒子由檯面升起，呈現污染的移動。'],['04 — ALERT','提醒切換強檔','依提醒手動切換抽油煙機；氣流為排煙示意。'],['05 — PROTECT','建立潔淨屏障','乾淨氣流補入，阻隔殘留油煙擴散。'],['06 — RESTORE','本輪淨化報告','PM2.5　200 → 10 µg/m³　·　模擬下降 95%']];
 const viewport=ui.querySelector('#kitchen-viewport');
 let renderer,scene,camera,room,glow,hoodLight,smoke,smokeGeo,fresh,freshGeo;
 const ihLines=[],hoodLines=[],ihRings=[];
@@ -122,9 +123,9 @@ function update(d){current=d;const i=d.scene,t=d.time,p=d.progress,v=d.values||[
  viewport.dataset.intro=String(opening);
  const introIndex=Math.min(5,Math.floor(p*6)),primary=i===0?introIndex:4;
  ui.querySelector('#primary-label').textContent=metricNames[primary];ui.querySelector('#primary-desc').textContent=['二氧化碳','甲醛','揮發性有機物','超細懸浮微粒','細懸浮微粒','懸浮微粒'][primary];
- ui.querySelector('#primary-unit').textContent=units[primary];ui.querySelector('#primary-value').textContent=primary===1||primary===2?Number(v[primary]||0).toFixed(2):Math.round(v[primary]||0);
+ ui.querySelector('#primary-unit').textContent=units[primary];ui.querySelector('#primary-value').textContent=displayValue(primary,v[primary]);
  ui.querySelector('#primary-note').textContent=i===0?['呼吸累積 · 通風不足','裝潢與家具逸散','油煙與清潔用品揮發','高溫烹飪 · 煙霧','煎炒油煙 · 室外污染','灰塵 · 花粉'][introIndex]:i===2?'烹飪情境 · 最高模擬值 200':i===5?'本輪模擬下降 95%':'模擬濃度 · 隨展演情境變化';
- ui.querySelectorAll('[data-metric]').forEach(e=>{const k=+e.dataset.metric;e.textContent=k===1||k===2?Number(v[k]||0).toFixed(2):Math.round(v[k]||0);});
+ ui.querySelectorAll('[data-metric]').forEach(e=>{const k=+e.dataset.metric;e.textContent=displayValue(k,v[k]);});
  stage.style.setProperty('--metric-state',i===0?tones[0]:Number(v[4])>35?tones[2]:tones[1]);
  ui.querySelector('#leftTime').textContent=`${Math.floor(t).toString().padStart(2,'0')} / ${Math.round(window.D_SHOW?.duration||90)} s`;
  const pts=document.querySelector('#sparkLine').getAttribute('points');if(pts){const arr=pts.split(' ').map(s=>s.split(',').map(Number));const path=arr.map(([x,y],j)=>`${j?'L':'M'}${x*400/260},${y*65/40}`).join(' ');ui.querySelector('#history-line').setAttribute('d',path);ui.querySelector('#history-fill').setAttribute('d',path+'L400 65L0 65Z');}

@@ -1,7 +1,7 @@
 (()=>{
  const q=new URLSearchParams(location.search);if(window.parent!==window||q.get('side')||q.get('legacy')==='1')return;
  document.body.classList.add('has-preview-player');
- const show=window.D_SHOW,names=['隱形風險','正常偵測','烹飪污染','負壓排煙','正壓守護','持續淨化'];
+ const show=window.D_SHOW,names=['隱形風險','正常偵測','烹飪污染','AI 提醒','正壓守護','持續淨化'];
  const bar=document.createElement('footer');bar.className='preview-player';
  bar.innerHTML=`<div class="playback"><button id="playPause" class="primary">▶ 播放</button><button id="reset" aria-label="重新開始">↺</button><span id="time">00:00 / 02:08</span></div><div class="timeline"><div id="progress"></div>${names.map((n,i)=>`<button data-stage="${i+1}"><b>0${i+1}</b>${n}</button>`).join('')}</div><details class="preview-options"><summary>預覽設定</summary><div>${document.body.classList.contains('preview-page')?'<button id="guide" aria-pressed="false">邊框安全範圍</button><a href="Dweb.html?v=once-1">完整舞台</a>':'<a href="preview.html?v=once-1">雙屏預覽</a>'}</div></details>`;
  document.body.append(bar);let state={time:0,playing:false};

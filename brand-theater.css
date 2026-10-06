@@ -1,0 +1,23 @@
+/* Black is the optical background for the window theater and smoke footage. */
+body.cinema .stage{background:#000}
+.cinema-ui{font-family:'Segoe UI','Microsoft JhengHei','PingFang TC',sans-serif;background:transparent}
+.cinema-ui .left-screen{background:linear-gradient(90deg,rgba(0,0,0,.12),rgba(0,0,0,0))}
+.cinema-ui .right-screen{background:transparent}
+.cinema-ui .narration,.cinema-ui .primary-metric,.cinema-ui .metric-strip>div,.cinema-ui .scene-explanation,.cinema-ui .equipment-state{background:transparent;box-shadow:none}
+.cinema-ui h1,.cinema-ui .scene-explanation h2{font-weight:500;letter-spacing:.02em}
+.cinema-ui header{color:#b4c9db}
+.cinema-ui .metric-strip small,.cinema-ui footer{color:#95a9bb}
+body.preview-page{background:#000}
+.preview-page main{border-radius:0;box-shadow:none}
+
+/* Playback glass is deliberately quiet; semantic red/green come from the film. */
+.cinema-ui header,.cinema-ui .metric-strip small,.cinema-ui footer{color:#a6adaa}
+.cinema-ui .narration,.cinema-ui .narration[data-speaker]{border-color:rgba(255,255,255,.09);box-shadow:none}
+.cinema-ui .equipment-state{border-color:rgba(255,255,255,.09);box-shadow:none}
+.cinema-ui .equipment-state.is-on{border-color:rgba(118,222,176,.22);box-shadow:none}
+.cinema-ui .equipment-state.is-starting{border-color:rgba(118,222,176,.3);box-shadow:none}
+.cinema-ui .equipment-state[data-equipment="heat"].is-on{border-color:rgba(255,194,120,.22)}
+.cinema-ui .equipment-pin{background:rgba(0,0,0,.12);border-left-color:rgba(255,255,255,.22);box-shadow:none}
+.cinema-ui .chapter,.cinema-ui .metric-strip>div,.cinema-ui footer{border-top-color:rgba(255,255,255,.08)}
+.cinema-ui .scene-explanation{border-top-color:rgba(255,255,255,.14)}
+.cinema-ui .speaker-icon{border-color:rgba(255,255,255,.2);background:transparent}

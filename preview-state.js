@@ -1,5 +1,5 @@
 // Local installations use the server; GitHub Pages shares a browser clock across both panels.
-const main=document.querySelector('main'),duration=window.D_SHOW?.duration||90,starts=window.D_SHOW?.starts||[0,12,24,40,56,72],names=['隱形風險','正常偵測','烹飪污染','負壓排煙','正壓守護','持續淨化'];
+const main=document.querySelector('main'),duration=window.D_SHOW?.duration||90,starts=window.D_SHOW?.starts||[0,12,24,40,56,72],names=['隱形風險','正常偵測','烹飪污染','AI 提醒','正壓守護','持續淨化'];
 new ResizeObserver(()=>document.querySelector('.screens').style.transform=`scale(${main.clientWidth/2160})`).observe(main);
 const previewQuery=new URLSearchParams(location.search);
 const endpoint=previewQuery.get('sync')||(location.port==='8776'?'/api/state':null);

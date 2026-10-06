@@ -1,0 +1,26 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>IH 爐 · 紅色投影</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#ff2414}svg{width:100%;height:100%;display:block}#hob-frame,#reactor,#ih-icon{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}.chassis{stroke-width:7}.glass-edge{stroke-width:14}.glass-inner{stroke-width:5}.edge-joins,.front-lip{stroke-width:5}.edge-glint{stroke-width:8}.control-divider{stroke-width:4}.touch-controls{stroke-width:5}.track{stroke-width:8;opacity:.55}.arc{stroke-width:14}.ring{stroke-width:20}.fine{stroke-width:5}.ring-depth,.ring-bevel{stroke-width:6}.ring-highlight,.reticle{stroke-width:5}#ih-icon path{stroke-width:5}.ih-mark{fill:currentColor;stroke:none;font:600 34px sans-serif;letter-spacing:5px}#hob-frame,#ih-icon{opacity:.65}#reactor{opacity:.16}.is-on #hob-frame,.is-on #ih-icon,.is-on #reactor{opacity:1}#state-label{display:none}</style></head><body><!-- Original geometry: 52d0f20 ih.html --><svg id="surface" viewBox="150 170 600 933.3333" role="img" aria-labelledby="title desc"><title id="title">IH 熱能投影</title><desc id="desc">紅色爐體與加熱環，線粗可調，跟隨劇場開關火。</desc>
+<g id="hob-frame" aria-label="俯視單口 IH 爐，正常長寬比例的透明玻璃外框">
+<rect x="181" y="253" width="538" height="722" rx="37" class="chassis" />
+<rect x="190" y="240" width="520" height="720" rx="30" class="glass-edge" />
+<rect x="201" y="251" width="498" height="698" rx="22" class="glass-inner" />
+<path d="M190 280L181 293M710 280L719 293M190 921L181 934M710 921L719 934M220 960L211 975M680 960L689 975" class="edge-joins" />
+<path d="M190 324V846M710 324V846" class="edge-glint" />
+<path d="M212 918Q212 937 231 937H669Q688 937 688 918" class="front-lip" />
+<path d="M214 866H686" class="control-divider" />
+<g class="touch-controls" transform="translate(450 907)"><circle r="22" /><path d="M0 -14V1M-10 -8A14 14 0 1 0 10 -8" /><path d="M-170 0H-148M148 0H170M159 -11V11" /><path d="M-115 0H-60M60 0H115" stroke-dasharray="2 9" /></g>
+</g>
+<g id="reactor" transform="translate(450 548) scale(.68)">
+<circle cy="3" r="216" class="ring-depth" />
+<path d="M-216 0A216 216 0 0 0 216 0" transform="translate(0 3)" class="ring-bevel" />
+<circle r="265" class="fine" /><circle r="246" class="track" />
+<g class="orbit"><circle r="246" class="arc" stroke-dasharray="820 180 190 356" /></g>
+<circle r="216" class="ring" /><circle r="208" class="fine" />
+<path d="M-199 -84A216 216 0 0 1 84 -199" class="ring-highlight" />
+<g id="ticks" /><g id="embers" />
+<path d="M-18 -282H18M0 -298V-266M-18 282H18M0 266V298M-282 -18V18M-298 0H-266M282 -18V18M266 0H298" class="reticle" />
+</g>
+<g id="ih-icon" transform="translate(374 300)" aria-label="IH 感應爐標示">
+<g fill="none" stroke="currentColor" stroke-width="2"><path d="M-32 -6C-44 -20 -7 -24 -10 -8S-37 12 -29 20M-20 -6C-32 -20 5 -24 2 -8S-25 12 -17 20M-8 -6C-20 -20 17 -24 14 -8S-13 12 -5 20" /><path d="M-44 28H22" /></g>
+<text x="42" y="2" class="ih-mark">IH</text><text x="42" y="29" class="ih-label" />
+</g>
+</svg><span id="state-label"></span><script src="show-config.js"></script><script type="module" src="mapping-ih.mjs"></script></body></html>

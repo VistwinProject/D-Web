@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {defaults,validateConfig,homography,cropRect,clockState} from '../mapping-core.mjs';
+test('line width persists and old profiles migrate',()=>{const c=defaults();c.regions[3].lineWidth=2.5;assert.equal(validateConfig(c).regions[3].lineWidth,2.5);delete c.regions[0].lineWidth;assert.equal(validateConfig(c).regions[0].lineWidth,1);c.regions[1].lineWidth=4;assert.throws(()=>validateConfig(c));});
+test('homography maps all four corners',()=>{const p=[[10,30],[900,100],[800,650],[150,700]],h=homography(p,1280,720);[[0,0],[1280,0],[1280,720],[0,720]].forEach(([x,y],i)=>{const d=h[6]*x+h[7]*y+1;assert.ok(Math.abs((h[0]*x+h[1]*y+h[2])/d-p[i][0])<1e-6);assert.ok(Math.abs((h[3]*x+h[4]*y+h[5])/d-p[i][1])<1e-6);});});
+test('portrait crop remains inside source',()=>{const [x,y,w,h]=cropRect(1920,1080,9/16,3,1,1);assert.ok(x+w<=1920&&y+h<=1080);});
+test('lost clock goes black and does not loop',()=>{assert.equal(clockState({time:70,playing:true},5,120).connected,false);assert.equal(clockState({time:119,playing:true},2,120).time,120);});

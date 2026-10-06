@@ -24,7 +24,7 @@ if(document.documentElement.dataset.player==='cinema'){
       player.control.sync(layer.localTime,playing,stamp);
      }else{player.control.sync(player.video.currentTime,false,stamp);player.cueId=null;}
      player.video.classList.toggle('on',!!layer);
-     player.video.style.opacity=String((key==='green'?.88:.52)*(layer?.weight||0));
+     player.video.style.opacity=String((key==='green'?1:.52)*(layer?.weight||0));
      player.video.dataset.filmWeight=String(layer?.weight||0);
     }
     stage.dataset.filmReady=String(layers.every(l=>players[l.clip].video.readyState>=2));

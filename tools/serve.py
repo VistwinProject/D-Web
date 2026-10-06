@@ -2,6 +2,7 @@
 import argparse, json, time, threading, functools, uuid
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+from mapping_store import handle_mapping
 
 show_file = Path(__file__).resolve().parents[1] / 'show.json'
 SHOW = json.loads(show_file.read_text(encoding='utf-8')) if show_file.exists() else {}
@@ -35,7 +36,7 @@ def x_status():
     chapter = max(i for i,start in enumerate(STARTS) if s['time'] >= start)
     return dict(protocol='x-playback-v1', zoneId='D', epoch=epoch, ready=all(live.values()),
         playback=dict(position=s['time'],duration=DURATION,playing=s['playing'],complete=s['time']>=DURATION,
-            chapter=chapter+1,title=['隱形風險','正常偵測','烹飪污染','負壓排煙','正壓守護','持續淨化'][chapter],mode=s['mode']),
+            chapter=chapter+1,title=['隱形風險','正常偵測','烹飪污染','AI 提醒','正壓守護','持續淨化'][chapter],mode=s['mode']),
         outputs=[dict(id=side,ready=ready,visible=outputs.get(side,{}).get('visible'),rendering=outputs.get(side,{}).get('rendering')) for side,ready in live.items()],
         command={k:v for k,v in last.items() if k!='issued'} if last else None,
         recentControls=control_history[-8:],
@@ -137,6 +138,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(data)))
         self.end_headers();self.wfile.write(data)
     def do_GET(self):
+        if handle_mapping(self): return
         if self.path.split('?')[0]=='/api/x/status':
             with lock: self.reply(x_status())
         elif self.path.split('?')[0]=='/api/state':
@@ -169,6 +171,7 @@ class Handler(SimpleHTTPRequestHandler):
             except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError):pass
         else: super().do_GET()
     def do_POST(self):
+        if handle_mapping(self): return
         if self.path not in ('/api/state','/api/x/control','/api/x/report'): return self.reply({'error':'not found'},404)
         if self.headers.get('Origin') not in (None,'http://'+self.headers.get('Host','')):
             return self.reply({'error':'origin rejected'},403)

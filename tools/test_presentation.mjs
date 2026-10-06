@@ -10,7 +10,7 @@ test('all voice text survives segmentation, within its original clip and speaker
 });
 test('fades, pause and backward seeks are clock-derived with no stale speaker',()=>{
  const first=cues[0];assert.equal(captionAt(cues,first.start).opacity,0);assert.ok(captionAt(cues,first.start+.15).opacity>0);assert.equal(captionAt(cues,first.start+.85).opacity,1);assert.ok(captionAt(cues,first.end-.05).opacity<.2);
- for(const id of ['d03-child','d03-mother','d04-exhaust']){const c=show.clips.find(c=>c.id===id);assert.equal(captionAt(cues,c.start+.5).cue.role,c.role);}assert.deepEqual(captionAt(cues,35),captionAt(cues,35));assert.equal(captionAt(cues,0).cue,null);assert.equal(captionAt(cues,show.duration-.1).cue,null);
+ for(const id of ['d03-child','d03-mother','d04-alert']){const c=show.clips.find(c=>c.id===id);assert.equal(captionAt(cues,c.start+.5).cue.role,c.role);}assert.deepEqual(captionAt(cues,35),captionAt(cues,35));assert.equal(captionAt(cues,0).cue,null);assert.equal(captionAt(cues,show.duration-.1).cue,null);
 });
 test('equipment starts on real cue boundaries and survives heat-off until replay',()=>{
  for(const [id,event] of [['heat','heatOn'],['exhaust','exhaustOn'],['fresh','freshOn']]){const t=show.events[event];assert.equal(equipmentAt(show.events,t-.001,show.duration).find(e=>e.id===id).active,false);assert.equal(equipmentAt(show.events,t,show.duration).find(e=>e.id===id).status,'啟動中');assert.equal(equipmentAt(show.events,t+2,show.duration).find(e=>e.id===id).starting,false);}
@@ -29,7 +29,7 @@ import {kitchenShots,cameraPose} from '../camera-shots.mjs';
 test('narration flows across scene boundaries without long silent holds',()=>{
  for(let i=1;i<show.clips.length;i++){
   const gap=show.clips[i].start-show.clips[i-1].end;
-  assert.ok(gap>0&&gap<=1.001,`${show.clips[i].id}: ${gap}s gap`);
+  assert.ok(gap>0&&gap<=(show.clips[i].id==='d05-fresh'?3.551:1.001),`${show.clips[i].id}: ${gap}s gap`);
  }
- assert.equal(show.duration-show.clips.at(-1).end,4);
+ assert.equal(show.duration-show.clips.at(-1).end,3.5);
 });

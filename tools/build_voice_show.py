@@ -27,25 +27,27 @@ def build():
     starts, cursor, output = [], 0., []
     for scene in range(1, 7):
         starts.append(cursor)
-        at = cursor + (1. if scene == 1 else .5)
+        at = cursor + (.75 if scene == 1 else .25)
         for c in [c for c in clips if c['scene'] == scene]:
             duration = len(c['samples']) / RATE
             output.append({k:v for k,v in c.items() if k != 'samples'} | {
                 'start': round(at, 3), 'end': round(at+duration, 3),
                 'file': f"assets/audio/{c['id']}.wav"})
-            at += duration + .8
+            at += duration + .45
         # Move on after speech, rather than padding each scene to an old minimum.
-        cursor = round(output[-1]['end'] + (.5 if scene < 6 else 4.), 3)
+        cursor = round(output[-1]['end'] + (3.3 if scene == 4 else .25 if scene < 6 else 3.5), 3)
     by_id = {c['id']:c for c in output}
     show = {'version': SCRIPT['version'], 'duration': cursor, 'starts': starts,
             'events': {'heatOn': by_id['d03-mother']['end'],
                        'heatOff': by_id['d06-mother']['end'],
-                       'exhaustOn': by_id['d04-exhaust']['start'],
+                       'exhaustOn': round(by_id['d04-alert']['end'] + .3, 3),
                        'freshOn': starts[4]},
             'audio': 'assets/audio/theatre-voice.wav', 'clips': output}
+    show['closingStart'] = round(by_id['d06-narrator']['end'] + .5, 3)
+    show['exhaustMode'] = 'manual-demonstration-after-alert'
     if 'd00-intro' in by_id:
         show['intro'] = {k:by_id['d00-intro'][k] for k in ('start','end','text')}
-        show['intro']['bodyStart'] = by_id['d01-narrator']['start'] - 1
+        show['intro']['bodyStart'] = by_id['d00-intro']['end'] + .225
     mix = array.array('h', [0]) * round(cursor * RATE)
     for c, cue in zip(clips, output):
         offset = round(cue['start'] * RATE)
