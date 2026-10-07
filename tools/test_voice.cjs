@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),vm=require(
 const source=fs.readFileSync(require('node:path').join(__dirname,'../theater-voice.js'),'utf8');
 function setup({embedded=false,right=false,playError=null,quiet=false}={}){
  const listeners={},elements={},commands=[];let now=0,interval;
- const window={D_SHOW:{duration:120,starts:[0,20,40,60,80,100],audio:'voice.wav'},addEventListener:(n,f)=>listeners[n]=f,dispatchEvent:e=>commands.push(e)};
+ const window={D_SHOW:{duration:120,starts:[0,20,40,60,80,100],audio:'voice.mp3',audioMaster:'voice.wav',audioFallback:'legacy.wav'},addEventListener:(n,f)=>listeners[n]=f,dispatchEvent:e=>commands.push(e)};
  window.parent=embedded?{}:window;
  const claims=[];
  const document={body:{append:e=>elements[e.id]=e},getElementById:()=>null,querySelector:()=>({querySelector:()=>null,insertBefore:e=>elements[e.id]=e}),createElement:tag=>tag==='audio'?{readyState:4,paused:true,currentTime:0,plays:0,play(){this.paused=false;this.plays++;return playError?Promise.reject({name:playError}):Promise.resolve();},pause(){this.paused=true;},addEventListener(n,f){this[n]=f;}}:{setAttribute(k,v){this[k]=v;}}};
@@ -51,3 +51,10 @@ test('silent QA cannot mute the user in another tab',()=>{
  const s=setup({quiet:true});s.start();assert.equal(s.claims.length,0);
  const normal=setup();normal.start();assert.equal(normal.claims.length,1);
 });
+
+ test('failed MP3 stays failed instead of downloading a WAV master',()=>{
+ const s=setup(),a=s.elements.theaterVoice;
+ a.error();
+ assert.equal(a.paused,true);
+ assert.equal(s.elements.voiceToggle.textContent,'語音載入失敗');
+ });

@@ -167,5 +167,5 @@ window.D_SHOW = {
       "file": "assets/audio/sfx/ventilation.wav"
     }
   ],
-  "audioFallback": "assets/audio/theatre-mix.wav"
+  "audioMaster": "assets/audio/theatre-mix.wav"
 };

@@ -1,16 +1,17 @@
-"""Create a compact Pages soundtrack, retaining the PCM master as fallback."""
+"""Create a compact Pages soundtrack, retaining the PCM master for editing only."""
 import argparse, hashlib, json, os, shutil, subprocess
 from pathlib import Path
 
 def build_web_audio(root, show, ffmpeg=None):
     encoder = ffmpeg or os.environ.get('FFMPEG_BINARY') or shutil.which('ffmpeg')
     if not encoder:
-        return False  # Standard-library builds still publish their fresh WAV.
-    source = root / show.get('audioFallback', show['audio'])
+        raise RuntimeError('ffmpeg is required: web playback must use MP3.')
+    source = root / show.get('audioMaster', show.get('audioFallback', show['audio']))
     output = source.with_suffix('.mp3')
     subprocess.run([encoder, '-hide_banner', '-loglevel', 'error', '-y', '-i', str(source),
                     '-c:a', 'libmp3lame', '-b:a', '96k', str(output)], check=True)
-    show['audioFallback'] = source.relative_to(root).as_posix()
+    show.pop('audioFallback', None)
+    show['audioMaster'] = source.relative_to(root).as_posix()
     version = hashlib.sha256(output.read_bytes()).hexdigest()[:10]
     show['audio'] = output.relative_to(root).as_posix() + '?v=' + version
     return True

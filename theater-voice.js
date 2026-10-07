@@ -6,7 +6,7 @@
  const button=document.createElement('button');button.id='voiceToggle';button.type='button';
  const toolbar=document.querySelector('.preview-player .playback');if(toolbar)toolbar.insertBefore(button,toolbar.querySelector('#reset'));else document.body.append(button);
  const silentTest=q.get('audio')==='muted';
- let enabled=!silentTest,pending=false,state=null,stateAt=0,lastSeek=-Infinity,lastTarget=null,fallbackUsed=false,needsActivation=false;
+ let enabled=!silentTest,pending=false,state=null,stateAt=0,lastSeek=-Infinity,lastTarget=null,needsActivation=false;
  button.disabled=silentTest;
  const owner=crypto.randomUUID(),ownership=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('dweb-voice-owner'):null;
  function label(){button.textContent=silentTest?'靜音測試':needsActivation?'語音未啟用 · 點此開啟':'語音：'+(enabled?'開':'關');button.setAttribute('aria-pressed',String(enabled));}
@@ -38,7 +38,6 @@
  }
  window.addEventListener('dweb-frame',e=>{state=e.detail;stateAt=performance.now();sync();});
  audio.addEventListener('error',()=>{
-  if(!fallbackUsed&&show.audioFallback){fallbackUsed=true;audio.src=show.audioFallback;audio.load();if(enabled&&state?.playing)play();return;}
   audio.pause();button.textContent='語音載入失敗';
  });
  setInterval(sync,200);window.addEventListener('pagehide',()=>audio.pause());label();

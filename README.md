@@ -153,3 +153,8 @@ IH 預設跟隨劇場六段。01 紫色待機、02 綠色偵測、03 紅色加�
 2026-09-28 氣流修正：負壓啟動後的捕集狀態由 exhaustOn 決定，不再因切到第五幕而恢復自由擴散。第六幕停止新增紅色粒子，保留現有粒子，持續向集煙口收束並於 6–11 秒內淡出。原先新風方框位置未經 HVAC 圖面確認，現已移除方框、入口標籤及定點特寫；保留全景的分散補氣／混合示意，並僅在新風啟動後顯示。綠色粒子採不同路徑、速度及淡出時長，分布於櫃體前的室內空間，避免穿過櫃體；這不是風口定位或 CFD 結果。
 參考氣流擴散與室內混合的概念：[Price Industries Air Distribution Engineering Guide](https://priceindustries.com/wp-content/uploads/Assets/literature/engineering-design-guides/air-distribution-engineering-guide.pdf)。實際風口位置、形式、送風方向及風量仍待現場 HVAC 圖或設備定位資料確認。
 验证：node --test tools/test_smoke.mjs tools/test_fresh_air.mjs tools/test_camera.mjs tools/test_kitchen_layout.mjs。
+
+
+### 2026-10-07 網頁音檔
+
+網頁配音使用 theatre-mix.mp3；播放失敗會顯示錯誤，不再回退下載 WAV。audioMaster 與各段 WAV 僅供離線製作；重建網頁音檔必須提供 ffmpeg。

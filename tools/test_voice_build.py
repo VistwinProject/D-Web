@@ -25,7 +25,7 @@ class VoiceBuildTests(unittest.TestCase):
                     self.assertLessEqual(gap,3.551 if clip['id']=='d05-fresh' else 1.001)
             self.assertGreater(show['events']['heatOff'],show['starts'][5])
             self.assertLess(show['events']['heatOn'],show['starts'][3])
-            with wave.open(str(root/show.get('audioFallback',show['audio']))) as master:
+            with wave.open(str(root/show['audioMaster'])) as master:
                 self.assertEqual(master.getnframes()/master.getframerate(),show['duration'])
             js=(root/'show-config.js').read_text(encoding='utf-8')
             self.assertEqual(json.loads(js.split('window.D_SHOW = ',1)[1].rstrip(';\n')),show)
