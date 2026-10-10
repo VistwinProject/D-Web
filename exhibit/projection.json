@@ -1,3 +1,6 @@
 {
- "D-projector": {"cut": 0.3, "feather": 0.08}
+ "D-projector": {
+  "cut": 0.0,
+  "feather": 0.0
+ }
 }
