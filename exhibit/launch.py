@@ -198,8 +198,10 @@ def cmd_start(zone, calibrate=False, only=()):
     used = [p[2]['name'] + str(p[2]['left']) for p in plan]
     if len(set(used)) != len(used):
         sys.exit('  ✗ 有兩個輸出被分到同一個螢幕，請檢查 outputs.json 與 screens 的編號')
-    if any(p[2]['main'] for p in plan):
-        print('  ! 有輸出被分到主螢幕（編號 0）；外接螢幕可能還沒被 macOS 偵測到')
+    for name, _, screen in plan:
+        if screen['main']:
+            print(f'  ! {name} 所在的「{screen["name"]}」是主螢幕：選單列、通知與其他 App 視窗會開在這台，'
+                  '可能蓋住展演畫面（建議用 HDMI 假螢幕插頭當主螢幕）')
     pids = load_pids()
     print(f'{zone} 區服務：')
     for name in ZONE_SERVICES[zone]:
