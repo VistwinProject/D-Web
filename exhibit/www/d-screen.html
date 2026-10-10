@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- 由 8781 代理提供，與 D 頁面同源；base 讓 D 的 theater-voice.js 用相對路徑找到音檔 -->
+<base href="/">
+<title>D 直立屏</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  #stage { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; transform-origin: 0 0; }
+  #stage[data-rotate="90"]  { width: 100vh; height: 100vw; transform: translateX(100vw) rotate(90deg); }
+  #stage[data-rotate="-90"] { width: 100vh; height: 100vw; transform: translateY(100vh) rotate(-90deg); }
+  #stage[data-rotate="180"] { transform: translate(100vw, 100vh) rotate(180deg); }
+  #stage iframe { display: block; width: 100%; height: 100%; border: 0; }
+  body:not(.debug) #voiceToggle { display: none; }
+  body.debug #voiceToggle { position: fixed; top: 8px; left: 8px; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="stage"><iframe id="screen" allow="autoplay"></iframe></div>
+<script src="/show-config.js"></script>
+<script src="/exhibit/rotate.js"></script>
+<script>
+// D 的左右屏設計為 1080×1920 直式。這頁把 Dweb.html 放進可旋轉的 iframe：
+// - 時鐘：自訂埠要明確帶 sync=/api/state 才跟 D 服務（8776 才會自動）
+// - 語音：Dweb.html 在 iframe 內不播語音，改由這頁載入 D 自己的 theater-voice.js，
+//         並把 iframe 內的 dweb-frame 時間軸事件轉到這頁
+// - 角落的「X 已連接」狀態標籤在展演時隱藏；網址加 debug=1 會顯示
+const q = new URLSearchParams(location.search);
+const side = q.get('side') === 'right' ? 'right' : 'left';
+const debug = q.get('debug') === '1';
+document.body.classList.toggle('debug', debug);
+document.title = `D 直立屏 · ${side === 'left' ? '左' : '右'}`;
+
+const frame = document.getElementById('screen');
+const src = new URL('/Dweb.html', location.origin);
+src.searchParams.set('side', side);
+src.searchParams.set('sync', '/api/state');
+if (q.get('x') !== '0') src.searchParams.set('x', '1');
+if (q.get('audio') === 'muted') src.searchParams.set('audio', 'muted');
+frame.src = src.href;
+
+exhibitRotation(`D-${side}`, document.getElementById('stage'));
+
+frame.addEventListener('load', () => {
+  const win = frame.contentWindow, doc = frame.contentDocument;
+  if (!debug) {
+    const style = doc.createElement('style');
+    style.textContent = 'body>output[style*="bottom: 4px"]{display:none!important} html,body,*{cursor:none!important}';
+    doc.head.append(style);
+  }
+  win.addEventListener('dweb-frame', e => window.dispatchEvent(new CustomEvent('dweb-frame', { detail: e.detail })));
+});
+</script>
+<script src="/theater-voice.js"></script>
+</body>
+</html>

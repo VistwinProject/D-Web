@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>旋轉輸出</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #stage { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; transform-origin: 0 0; }
+  #stage[data-rotate="90"]  { width: 100vh; height: 100vw; transform: translateX(100vw) rotate(90deg); }
+  #stage[data-rotate="-90"] { width: 100vh; height: 100vw; transform: translateY(100vh) rotate(-90deg); }
+  #stage[data-rotate="180"] { transform: translate(100vw, 100vh) rotate(180deg); }
+  #stage iframe { display: block; width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+<div id="stage"><iframe id="out" allow="autoplay; fullscreen"></iframe></div>
+<script src="/exhibit/rotate.js"></script>
+<script>
+// 通用旋轉外框：?key=D-projector&src=/mapping.html?output=1…
+// 由各區的同源代理提供（C 8780、D 8781），所以 src 只接受本站路徑。
+// 方向用 key 存在 display.json，控制台可即時切換。滑鼠操作（例如投影四角校正）
+// 會依旋轉自動換算座標；鍵盤快捷鍵（F 校正、B 黑場…）則把焦點交給 iframe。
+const q = new URLSearchParams(location.search);
+const src = q.get('src') || '';
+const key = q.get('key') || '';
+const frame = document.getElementById('out');
+if (src.startsWith('/') && !src.startsWith('//')) frame.src = src;
+document.title = `旋轉輸出 · ${key || src}`;
+if (key) exhibitRotation(key, document.getElementById('stage'));
+frame.addEventListener('load', () => frame.contentWindow.focus());
+addEventListener('focus', () => frame.contentWindow?.focus());
+</script>
+</body>
+</html>

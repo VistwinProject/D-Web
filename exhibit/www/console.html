@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C・D 展場控制台</title>
+<style>
+  :root { --bg: #0b0f16; --card: #141a24; --line: #263040; --text: #e8eef8; --dim: #8b97aa;
+          --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --accent: #60a5fa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif; }
+  header { padding: 20px 28px 8px; display: flex; align-items: baseline; gap: 16px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; }
+  header span { color: var(--dim); font-size: 13px; }
+  main { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; padding: 16px 28px 28px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  h2 { margin: 0 0 4px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .sub { color: var(--dim); font-size: 13px; margin: 0 0 14px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); flex: none; }
+  .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+  dl { display: grid; grid-template-columns: 88px 1fr; gap: 4px 12px; margin: 0 0 14px; font-size: 14px; }
+  dt { color: var(--dim); } dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 0 0 14px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s linear; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  button { font: inherit; color: var(--text); background: #1d2533; border: 1px solid #334055; border-radius: 8px;
+           padding: 9px 14px; cursor: pointer; min-width: 44px; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: #1e3a5f; border-color: #3b6ea8; }
+  button[aria-pressed="true"] { border-color: var(--accent); background: #1e3a5f; }
+  button:disabled { opacity: .4; cursor: default; }
+  .msg { min-height: 1.5em; font-size: 13px; color: var(--dim); }
+  .msg.bad { color: var(--bad); } .msg.ok { color: var(--ok); }
+</style>
+</head>
+<body>
+<header><h1>C・D 展場控制台</h1><span>本機 127.0.0.1 · 走各區 X 播放協定（x-playback-v1）</span></header>
+<main>
+  <section data-zone="c">
+    <h2><span class="dot"></span>C 區 · 睡眠劇場（投影）</h2>
+    <p class="sub">投影頁 Cweb-3d.html?x=1</p>
+    <dl><dt>狀態</dt><dd data-f="state">—</dd><dt>段落</dt><dd data-f="title">—</dd><dt>時間</dt><dd data-f="time">—</dd><dt>上個指令</dt><dd data-f="cmd">—</dd></dl>
+    <div class="bar"><i></i></div>
+    <div class="row">
+      <button class="primary" data-op="start">開始</button><button data-op="pause">暫停</button>
+      <button data-op="play">繼續</button><button data-op="replay">重播</button><button data-op="standby">回待機</button>
+    </div>
+    <div class="msg"></div>
+  </section>
+
+  <section data-zone="d">
+    <h2><span class="dot"></span>D 區 · 居家風險劇場（雙屏＋投影）</h2>
+    <p class="sub">左右屏 Dweb.html?side=left|right&amp;x=1 · 投影 mapping.html?output=1（自動跟隨）</p>
+    <dl><dt>狀態</dt><dd data-f="state">—</dd><dt>段落</dt><dd data-f="title">—</dd><dt>時間</dt><dd data-f="time">—</dd><dt>上個指令</dt><dd data-f="cmd">—</dd></dl>
+    <div class="bar"><i></i></div>
+    <div class="row">
+      <button class="primary" data-op="start">開始</button><button data-op="pause">暫停</button>
+      <button data-op="play">繼續</button><button data-op="replay">重播</button><button data-op="standby">回待機</button>
+    </div>
+    <div class="msg"></div>
+  </section>
+
+  <section id="window">
+    <h2><span class="dot"></span>C 區 · 數位窗景（雙電視）</h2>
+    <p class="sub">左右兩台經同步中繼 ws://127.0.0.1:8787 對齊；左台是時鐘來源</p>
+    <dl><dt>中繼</dt><dd data-f="relay">—</dd><dt>左台時鐘</dt><dd data-f="clock">—</dd></dl>
+    <div class="row" data-group="video"></div>
+    <div class="row" data-group="panel"></div>
+    <div class="row"><button data-glass aria-pressed="false">備援玻璃（無濾鏡）</button></div>
+    <div class="msg"></div>
+  </section>
+
+  <section id="orient">
+    <h2><span class="dot ok"></span>螢幕方向（直立電視・轉向投影）</h2>
+    <p class="sub">電視實體直立、系統仍輸出橫向時，由網頁把畫面轉 90°。按下立即套用並記住；字倒了就換另一個方向</p>
+    <div data-rows></div>
+    <div class="msg"></div>
+  </section>
+</main>
+<script>
+const fmt = s => { s = Math.max(0, s || 0); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
+const CMD = { accepted: '已送出，等待頁面套用', applied: '已套用', rejected: '被拒絕', unknown: '逾時未確認' };
+
+// ---- C / D 劇場：輪詢狀態、送指令 ----
+for (const card of document.querySelectorAll('section[data-zone]')) {
+  const zone = card.dataset.zone, f = n => card.querySelector(`[data-f="${n}"]`);
+  const dot = card.querySelector('.dot'), bar = card.querySelector('.bar i'), msg = card.querySelector('.msg');
+  let last = null;
+  async function poll() {
+    try {
+      const r = await fetch(`/api/${zone}/status`, { cache: 'no-store' });
+      const s = await r.json();
+      if (!r.ok) throw Error(s.error || r.status);
+      last = s;
+      const pb = s.playback || {}, outs = (s.outputs || []).map(o => `${o.id}${o.ready ? '✓' : '✗'}`).join(' ');
+      dot.className = 'dot ' + (s.ready ? 'ok' : 'warn');
+      f('state').textContent = (s.ready ? '就緒' : '頁面未全部就緒') + (outs ? ` · ${outs}` : '') +
+        (pb.playing ? ' · 播放中' : pb.complete ? ' · 已結束' : ' · 停止');
+      f('title').textContent = pb.chapter ? `${pb.chapter}. ${pb.title || ''}` : '—';
+      f('time').textContent = pb.duration ? `${fmt(pb.position)} / ${fmt(pb.duration)}` : '—';
+      f('cmd').textContent = s.command ? `${s.command.id.slice(0, 8)} ${CMD[s.command.state] || s.command.state}${s.command.note ? ' · ' + s.command.note : ''}` : '—';
+      bar.style.width = pb.duration ? `${Math.min(100, pb.position / pb.duration * 100)}%` : '0';
+    } catch (e) {
+      last = null; dot.className = 'dot bad';
+      f('state').textContent = String(e.message || e);
+      for (const k of ['title', 'time', 'cmd']) f(k).textContent = '—';
+      bar.style.width = '0';
+    }
+  }
+  card.querySelectorAll('[data-op]').forEach(b => b.onclick = async () => {
+    msg.className = 'msg'; msg.textContent = '送出中…';
+    try {
+      if (!last) await poll();
+      if (!last) throw Error('服務未連線');
+      const r = await fetch(`/api/${zone}/control`, { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: crypto.randomUUID(), epoch: last.epoch, operation: b.dataset.op }) });
+      const res = await r.json();
+      if (!r.ok) throw Error(res.error || r.status);
+      msg.className = 'msg ok'; msg.textContent = `「${b.textContent}」${CMD[res.state] || res.state}`;
+    } catch (e) { msg.className = 'msg bad'; msg.textContent = `「${b.textContent}」失敗：${e.message || e}`; }
+    poll();
+  });
+  poll(); setInterval(poll, 1000);
+}
+
+// ---- 自動循環播放：設定與倒數都在 kit 服務端 ----
+for (const card of document.querySelectorAll('section[data-zone]')) {
+  card.querySelector('.msg').insertAdjacentHTML('beforebegin',
+    `<div class="row" data-auto><button data-auto-toggle aria-pressed="false">自動循環：關</button>` +
+    `<label style="align-self:center;color:var(--dim)">片尾停 <input data-auto-gap type="number" min="0" max="600" step="1" ` +
+    `style="width:64px;font:inherit;color:var(--text);background:#1d2533;border:1px solid #334055;border-radius:6px;padding:6px 8px"> 秒後重播</label>` +
+    `<span data-auto-note style="align-self:center;color:var(--dim);font-size:13px"></span></div>`);
+}
+async function autoplay(body) {
+  const r = await fetch('/exhibit-api/autoplay', body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' });
+  const data = await r.json();
+  for (const card of document.querySelectorAll('section[data-zone]')) {
+    const a = data[card.dataset.zone]; if (!a) continue;
+    const t = card.querySelector('[data-auto-toggle]'), g = card.querySelector('[data-auto-gap]');
+    t.setAttribute('aria-pressed', String(a.enabled)); t.textContent = `自動循環：${a.enabled ? '開' : '關'}`;
+    if (document.activeElement !== g) g.value = a.gap;
+    card.querySelector('[data-auto-note]').textContent = a.enabled ? a.note : '';
+  }
+}
+document.querySelectorAll('section[data-zone]').forEach(card => {
+  const zone = card.dataset.zone;
+  card.querySelector('[data-auto-toggle]').onclick = e =>
+    autoplay({ zone, enabled: e.currentTarget.getAttribute('aria-pressed') !== 'true' });
+  card.querySelector('[data-auto-gap]').onchange = e => autoplay({ zone, gap: +e.target.value });
+});
+autoplay(); setInterval(() => autoplay().catch(() => {}), 1000);
+
+// ---- 窗景：經同步中繼送 scene（與窗景頁按 1–9 / A–G / Q 相同效果）----
+const win = document.getElementById('window'), wf = n => win.querySelector(`[data-f="${n}"]`);
+const wdot = win.querySelector('.dot'), wmsg = win.querySelector('.msg');
+const PANELS = [['compact', 'A 精簡卡片'], ['dashboard', 'S 儀表板'], ['detail', 'D 詳細版'], ['ambient', 'F 無框版'], ['board', 'G 面板版']];
+const scene = { videoIndex: 0, panel: 'compact', flatGlass: false };
+let ws = null, lastClock = 0;
+const videoRow = win.querySelector('[data-group="video"]'), panelRow = win.querySelector('[data-group="panel"]');
+for (let i = 0; i < 9; i++) videoRow.insertAdjacentHTML('beforeend', `<button data-video="${i}">影片 ${i + 1}</button>`);
+for (const [id, label] of PANELS) panelRow.insertAdjacentHTML('beforeend', `<button data-panel="${id}">${label}</button>`);
+const glass = win.querySelector('[data-glass]');
+function render() {
+  win.querySelectorAll('[data-video]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.video === scene.videoIndex)));
+  win.querySelectorAll('[data-panel]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.panel === scene.panel)));
+  glass.setAttribute('aria-pressed', String(scene.flatGlass));
+}
+function send() {
+  if (ws?.readyState !== WebSocket.OPEN) { wmsg.className = 'msg bad'; wmsg.textContent = '中繼未連線'; return; }
+  ws.send(JSON.stringify({ t: 'scene', ...scene })); render();
+  wmsg.className = 'msg ok'; wmsg.textContent = `已送出：影片 ${scene.videoIndex + 1} · ${scene.panel}${scene.flatGlass ? ' · 備援玻璃' : ''}`;
+}
+videoRow.onclick = e => { const b = e.target.closest('[data-video]'); if (b) { scene.videoIndex = +b.dataset.video; send(); } };
+panelRow.onclick = e => { const b = e.target.closest('[data-panel]'); if (b) { scene.panel = b.dataset.panel; send(); } };
+glass.onclick = () => { scene.flatGlass = !scene.flatGlass; send(); };
+function connect() {
+  ws = new WebSocket(`ws://${location.hostname}:8787`);
+  ws.onopen = () => { wf('relay').textContent = '已連線'; ws.send(JSON.stringify({ t: 'hello' })); };
+  ws.onmessage = e => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.t === 'scene' && typeof m.videoIndex === 'number') { Object.assign(scene, { videoIndex: m.videoIndex, panel: m.panel, flatGlass: !!m.flatGlass }); render(); }
+    if (m.t === 'clock') { lastClock = performance.now(); wf('clock').textContent = `影片 ${m.videoIndex + 1} · ${m.time.toFixed(1)} 秒`; }
+  };
+  ws.onclose = () => { wf('relay').textContent = '未連線（kit_server 沒開？）'; setTimeout(connect, 2000); };
+}
+setInterval(() => {
+  const alive = performance.now() - lastClock < 3000;
+  wdot.className = 'dot ' + (ws?.readyState !== WebSocket.OPEN ? 'bad' : alive ? 'ok' : 'warn');
+  if (!alive && ws?.readyState === WebSocket.OPEN) wf('clock').textContent = '沒有收到（左台未開或尚未進入左半裁切）';
+}, 1000);
+render(); connect();
+
+// ---- 螢幕方向：寫入 kit 的 display.json，包裝頁經中繼即時套用 ----
+const orient = document.getElementById('orient'), omsg = orient.querySelector('.msg');
+const SCREENS = [['D-left', 'D 左屏'], ['D-right', 'D 右屏'], ['D-projector', 'D 投影'], ['C-left', 'C 窗景左'], ['C-right', 'C 窗景右'], ['C-projector', 'C 投影']];
+const ANGLES = [[0, '不轉'], [90, '↻ 順時針 90°'], [-90, '↺ 逆時針 90°'], [180, '180°']];
+orient.querySelector('[data-rows]').innerHTML = SCREENS.map(([key, label]) =>
+  `<div class="row" data-key="${key}"><span style="width:88px;color:var(--dim);align-self:center">${label}</span>` +
+  ANGLES.map(([deg, text]) => `<button data-deg="${deg}">${text}</button>`).join('') + '</div>').join('');
+function showOrient(data) {
+  orient.querySelectorAll('[data-key]').forEach(row => row.querySelectorAll('[data-deg]').forEach(b =>
+    b.setAttribute('aria-pressed', String(+b.dataset.deg === (data[row.dataset.key] ?? 0)))));
+}
+orient.onclick = async e => {
+  const b = e.target.closest('[data-deg]'); if (!b) return;
+  const key = b.closest('[data-key]').dataset.key;
+  try {
+    const r = await fetch('/exhibit-api/display', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ key, rotate: +b.dataset.deg }) });
+    const data = await r.json(); if (!r.ok) throw Error(data.error || r.status);
+    showOrient(data); omsg.className = 'msg ok'; omsg.textContent = `${key}：${b.textContent}`;
+  } catch (err) { omsg.className = 'msg bad'; omsg.textContent = `設定失敗：${err.message || err}`; }
+};
+fetch('/exhibit-api/display', { cache: 'no-store' }).then(r => r.json()).then(showOrient).catch(() => {});
+</script>
+</body>
+</html>

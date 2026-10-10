@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C 窗景</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  #stage { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; transform-origin: 0 0; }
+  #stage[data-rotate="90"]  { width: 100vh; height: 100vw; transform: translateX(100vw) rotate(90deg); }
+  #stage[data-rotate="-90"] { width: 100vh; height: 100vw; transform: translateY(100vh) rotate(-90deg); }
+  #stage[data-rotate="180"] { transform: translate(100vw, 100vh) rotate(180deg); }
+  #stage iframe { display: block; width: 100%; height: 100%; border: 0; }
+  #note { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 80vw;
+          padding: 24px 32px; border-radius: 12px; background: rgba(20, 24, 32, .92); color: #fff;
+          font: 500 28px/1.5 -apple-system, 'PingFang TC', sans-serif; text-align: center; }
+  #note[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div id="stage"><iframe id="win" allow="autoplay; fullscreen"></iframe></div>
+<div id="note" hidden></div>
+<script src="/exhibit/rotate.js"></script>
+<script>
+// 窗景只能用 L / R 鍵切半邊，而且是切換式（再按一次回全畫面）。
+// 這裡讀實際畫面狀態（data-crop 與裁切位移），不對才按一次，所以不會切過頭。
+const q = new URLSearchParams(location.search);
+const side = q.get('side') === 'right' ? 'right' : q.get('side') === 'left' ? 'left' : null;
+const frame = document.getElementById('win');
+const note = document.getElementById('note');
+const src = new URL('/C-Digital-Window-demo/', location.origin);
+if (q.get('sync')) src.searchParams.set('sync', q.get('sync'));
+frame.src = src.href;
+document.title = `C 窗景 · ${side === 'left' ? '左' : side === 'right' ? '右' : '全畫面'}`;
+// 電視實體直立但輸出橫向時，旋轉後 iframe 內就是直式視口，窗景的雙屏裁切才會生效
+if (side) exhibitRotation(`C-${side}`, document.getElementById('stage'), () => setTimeout(enforce, 300));
+
+function current() {
+  const doc = frame.contentDocument;
+  const root = doc && doc.querySelector('[data-crop="1"]');
+  if (!root) return 'normal';
+  // 左半：畫布左緣 = (2W - S) / 2 ≥ 0；右半再左移一個螢幕寬 → 左緣 = -S / 2 < 0
+  const canvas = root.querySelector(':scope > div.absolute');
+  return canvas && canvas.getBoundingClientRect().left < 0 ? 'right' : 'left';
+}
+
+function press(key) {
+  frame.contentWindow.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+}
+
+function show(text) { note.textContent = text; note.hidden = !text; }
+
+let settled = 0;
+function enforce() {
+  if (!side || !frame.contentDocument || !frame.contentDocument.querySelector('video')) return;
+  const view = frame.contentWindow;
+  if (view.innerHeight <= view.innerWidth) {
+    show('窗景雙屏裁切只在直式畫面生效：請在控制台「螢幕方向」把這台轉 90°');
+    return;
+  }
+  show('');
+  if (current() === side) { settled++; return; }
+  settled = 0;
+  press(side === 'left' ? 'l' : 'r');
+}
+
+// 等 React 掛好鍵盤監聽後再按；之後持續檢查，頁面重整或被誤按也會自動拉回來。
+frame.addEventListener('load', () => setTimeout(enforce, 1500));
+setInterval(enforce, 2000);
+addEventListener('resize', enforce);
+</script>
+</body>
+</html>

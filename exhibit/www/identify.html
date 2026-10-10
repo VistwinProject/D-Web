@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>認裝置</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; color: #fff;
+               font-family: -apple-system, 'PingFang TC', sans-serif; }
+  body { display: grid; grid-template-columns: 1fr 1.3fr 1fr; }
+  /* 螢幕可能直立（兩個方向）或橫放：同一組資訊轉 -90°、不轉、轉 90° 各放一份，總有一份是正的 */
+  .half { display: grid; place-items: center; overflow: hidden; }
+  .card { display: grid; justify-items: center; gap: 2vh; white-space: nowrap; }
+  .half:first-child .card { transform: rotate(-90deg); }
+  .half:nth-child(3) .card { transform: rotate(90deg); }
+  .n { font-size: 30vh; font-weight: 800; line-height: 1; }
+  .name { font-size: 6vh; font-weight: 600; }
+  .meta { font-size: 3.6vh; opacity: .85; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="half"><div class="card"></div></div>
+<div class="half"><div class="card"></div></div>
+<div class="half"><div class="card"></div></div>
+<script>
+const q = new URLSearchParams(location.search);
+const n = q.get('n') || '?';
+document.body.style.background = ['#1d4ed8', '#047857', '#c2410c', '#7e22ce', '#be123c'][(+n - 1) % 5] || '#333';
+for (const card of document.querySelectorAll('.card')) {
+  card.innerHTML = `<div class="n"></div><div class="name"></div><div class="meta"></div>`;
+  card.querySelector('.n').textContent = n;
+  card.querySelector('.name').textContent = q.get('name') || '';
+  card.querySelector('.meta').textContent = `serial:${q.get('serial') || '-'} · ${q.get('size') || ''}`;
+}
+document.title = `認裝置 ${n}`;
+</script>
+</body>
+</html>
