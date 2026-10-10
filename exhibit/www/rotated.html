@@ -22,6 +22,7 @@
 // 方向用 key 存在 display.json，控制台可即時切換。滑鼠操作（例如投影四角校正）
 // 會依旋轉自動換算座標；鍵盤快捷鍵（F 校正、B 黑場…）則把焦點交給 iframe。
 // &hide=CSS 選擇器：在內頁隱藏這些元素與游標，例如投影只留 mapping 好的畫面。
+// &calib=1（mapping 校正模式）：角點浮到校正面板上面，按 H 暫時收起／叫回面板。
 // 投影調整（projection.json，同一個 key）：煙霧區的黑位切除與邊緣羽化，控制台可即時調。
 const q = new URLSearchParams(location.search);
 const src = q.get('src') || '';
@@ -67,6 +68,16 @@ frame.addEventListener('load', () => {
     const style = frame.contentDocument.createElement('style');
     style.textContent = `${hide}{display:none!important} html,body,*{cursor:none!important}`;
     frame.contentDocument.head.append(style);
+  }
+  if (q.get('calib') === '1') {
+    const doc = frame.contentDocument, win = frame.contentWindow;
+    const style = doc.createElement('style');
+    style.textContent = '#handles{z-index:30!important} body.exhibit-nopanel #panel{display:none!important}';
+    doc.head.append(style);
+    win.addEventListener('keydown', e => {
+      if (e.key.toLowerCase() !== 'h' || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+      doc.body.classList.toggle('exhibit-nopanel');
+    });
   }
   frame.contentWindow.focus();
 });

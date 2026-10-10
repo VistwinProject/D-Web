@@ -25,7 +25,7 @@
     "projector": {
       "screen": "Optoma",
       "url": "http://127.0.0.1:8781/exhibit/rotated.html?key=D-projector&src=%2Fmapping.html%3Foutput%3D1%26sync%3D%2Fapi%2Fstate&hide=.editor%2C%23guides%2C%23handles",
-      "calibrate_url": "http://127.0.0.1:8781/exhibit/rotated.html?key=D-projector&src=%2Fmapping.html%3Fsync%3D%2Fapi%2Fstate"
+      "calibrate_url": "http://127.0.0.1:8781/exhibit/rotated.html?key=D-projector&src=%2Fmapping.html%3Fsync%3D%2Fapi%2Fstate&calib=1"
     }
   }
 }
