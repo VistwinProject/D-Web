@@ -5,6 +5,7 @@
   python3 D-Web/exhibit/launch.py identify       在每台外接螢幕顯示大編號與序號，認出哪台是哪台
   python3 D-Web/exhibit/launch.py start C        開 C 區（窗景左右電視＋睡眠劇場投影）
   python3 D-Web/exhibit/launch.py start D        開 D 區（左右直立屏＋煙霧/IH 投影）
+  python3 D-Web/exhibit/launch.py calibrate D    只把投影機切到校正模式（打開 mapping 校正面板）
   python3 D-Web/exhibit/launch.py stop           關掉所有 kiosk 視窗與本工具開的服務
   python3 D-Web/exhibit/launch.py console        在目前的 Chrome 開控制台
 
@@ -76,7 +77,7 @@ def load_pids():
 
 
 def save_pids(p):
-    RUNTIME.mkdir(exist_ok=True)
+    RUNTIME.mkdir(parents=True, exist_ok=True)
     PIDS.write_text(json.dumps(p, indent=1))
 
 
@@ -85,7 +86,7 @@ def ensure_service(name, pids):
     if port_open(svc['port']):
         print(f'  · {name} 服務已在 {svc["port"]} 執行，沿用')
         return
-    LOGS.mkdir(exist_ok=True)
+    LOGS.mkdir(parents=True, exist_ok=True)
     log = open(LOGS / f'{name}.log', 'ab')
     proc = subprocess.Popen(svc['cmd'], stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     for _ in range(50):
@@ -169,13 +170,18 @@ def cmd_identify(include_main):
     print('\n看完告訴我每個編號的實體位置；關掉：python3 D-Web/exhibit/launch.py stop')
 
 
-def cmd_start(zone):
+def cmd_start(zone, calibrate=False):
     cfg = json.loads(CONFIG.read_text())
     if zone not in cfg:
         sys.exit(f'outputs.json 沒有 {zone} 區')
+    outputs = cfg[zone]
+    if calibrate:  # 只重開有 calibrate_url 的輸出（投影機），其他畫面不動
+        outputs = {k: {**v, 'url': v['calibrate_url']} for k, v in outputs.items() if 'calibrate_url' in v}
+        if not outputs:
+            sys.exit(f'{zone} 區沒有可校正的輸出（outputs.json 沒有 calibrate_url）')
     all_screens = screens()
     plan = []
-    for name, out in cfg[zone].items():
+    for name, out in outputs.items():
         screen = pick_screen(out['screen'], all_screens)
         if screen is None:
             print(f'  ! {name}：找不到螢幕 {out["screen"]!r}（目前 {len(all_screens)} 個），先跳過')
@@ -193,13 +199,15 @@ def cmd_start(zone):
     for name in ZONE_SERVICES[zone]:
         ensure_service(name, pids)
     print(f'{zone} 區輸出：')
-    stop_kiosks(f'{zone}-')
+    for name in (outputs if calibrate else ['']):
+        stop_kiosks(f'{zone}-{name}')
     stop_kiosks('identify-')
     time.sleep(0.5)
     for name, url, screen in plan:
         open_kiosk(f'{zone}-{name}', url, screen, pids)
     if 'caffeinate' not in pids:
-        pids['caffeinate'] = subprocess.Popen(['caffeinate', '-di'], start_new_session=True).pid
+        pids['caffeinate'] = subprocess.Popen(['caffeinate', '-di'], stdout=subprocess.DEVNULL,
+                                              stderr=subprocess.DEVNULL, start_new_session=True).pid
         print('  ✓ 展演期間不讓螢幕睡眠（caffeinate）')
     save_pids(pids)
     print('\n控制台：http://127.0.0.1:8790/exhibit/console.html（python3 D-Web/exhibit/launch.py console）')
@@ -220,17 +228,17 @@ def cmd_stop():
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ('screens', 'identify', 'start', 'stop', 'console'):
+    if len(sys.argv) < 2 or sys.argv[1] not in ('screens', 'identify', 'start', 'calibrate', 'stop', 'console'):
         print(__doc__)
         return
     if sys.argv[1] == 'screens':
         cmd_screens()
     elif sys.argv[1] == 'identify':
         cmd_identify('--all' in sys.argv)
-    elif sys.argv[1] == 'start':
+    elif sys.argv[1] in ('start', 'calibrate'):
         if len(sys.argv) < 3 or sys.argv[2].upper() not in ZONE_SERVICES:
-            sys.exit('用法：launch.py start C|D')
-        cmd_start(sys.argv[2].upper())
+            sys.exit(f'用法：launch.py {sys.argv[1]} C|D')
+        cmd_start(sys.argv[2].upper(), calibrate=sys.argv[1] == 'calibrate')
     elif sys.argv[1] == 'stop':
         cmd_stop()
     else:

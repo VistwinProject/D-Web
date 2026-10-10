@@ -1,12 +1,31 @@
 {
   "C": {
-    "tv-left":   { "screen": "serial:16780800", "url": "http://127.0.0.1:8790/exhibit/c-window.html?side=left" },
-    "tv-right":  { "screen": "serial:16780933", "url": "http://127.0.0.1:8790/exhibit/c-window.html?side=right" },
-    "projector": { "screen": "Optoma",          "url": "http://127.0.0.1:8780/exhibit/rotated.html?key=C-projector&src=%2FCweb-3d.html%3Fx%3D1" }
+    "tv-left": {
+      "screen": "serial:16780800",
+      "url": "http://127.0.0.1:8790/exhibit/c-window.html?side=left"
+    },
+    "tv-right": {
+      "screen": "serial:16780933",
+      "url": "http://127.0.0.1:8790/exhibit/c-window.html?side=right"
+    },
+    "projector": {
+      "screen": "Optoma",
+      "url": "http://127.0.0.1:8780/exhibit/rotated.html?key=C-projector&src=%2FCweb-3d.html%3Fx%3D1"
+    }
   },
   "D": {
-    "screen-left":  { "screen": "serial:16780800", "url": "http://127.0.0.1:8781/exhibit/d-screen.html?side=left" },
-    "screen-right": { "screen": "serial:16780933", "url": "http://127.0.0.1:8781/exhibit/d-screen.html?side=right" },
-    "projector":    { "screen": "Optoma",          "url": "http://127.0.0.1:8781/exhibit/rotated.html?key=D-projector&src=%2Fmapping.html%3Foutput%3D1%26sync%3D%2Fapi%2Fstate" }
+    "screen-left": {
+      "screen": "serial:16780800",
+      "url": "http://127.0.0.1:8781/exhibit/d-screen.html?side=left"
+    },
+    "screen-right": {
+      "screen": "serial:16780933",
+      "url": "http://127.0.0.1:8781/exhibit/d-screen.html?side=right"
+    },
+    "projector": {
+      "screen": "Optoma",
+      "url": "http://127.0.0.1:8781/exhibit/rotated.html?key=D-projector&src=%2Fmapping.html%3Foutput%3D1%26sync%3D%2Fapi%2Fstate",
+      "calibrate_url": "http://127.0.0.1:8781/exhibit/rotated.html?key=D-projector&src=%2Fmapping.html%3Fsync%3D%2Fapi%2Fstate"
+    }
   }
 }
