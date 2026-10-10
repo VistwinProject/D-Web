@@ -23,6 +23,8 @@ import re
 import socket
 import socketserver
 import struct
+import subprocess
+import sys
 import threading
 import time
 import urllib.error
@@ -76,7 +78,7 @@ class KitHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split('?')[0]
-        if handle_display(self) or handle_autoplay(self) or handle_projection(self):
+        if handle_display(self) or handle_autoplay(self) or handle_projection(self) or handle_session(self):
             return
         if path == '/':
             self.send_response(302)
@@ -100,6 +102,8 @@ class KitHandler(BaseHTTPRequestHandler):
             return handle_autoplay(self)
         if path == '/exhibit-api/projection':
             return handle_projection(self)
+        if path == '/exhibit-api/session':
+            return handle_session(self)
         if not path.startswith('/api/'):
             return self.reply(404, {'error': 'not found'})
         if self.headers.get('Origin') not in (None, 'http://' + self.headers.get('Host', '')):
@@ -260,6 +264,40 @@ def handle_projection(handler):
     return True
 
 
+# 展演狀態：暫停／繼續／重新排列。實際動作交給 launch.py（在背景執行，不卡住這個服務）
+RUNTIME = ROOT / '.exhibit-runtime'
+SESSION_FILE = RUNTIME / 'session.json'
+
+
+def handle_session(handler):
+    if handler.path.split('?')[0] != '/exhibit-api/session':
+        return False
+    try:
+        session = json.loads(SESSION_FILE.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        session = {}
+    if handler.command == 'POST':
+        try:
+            size = int(handler.headers.get('Content-Length', 0))
+            action = json.loads(handler.rfile.read(size))['action'] if 0 < size <= 256 else None
+            args = {'pause': ['pause'], 'resume': ['resume'],
+                    'refresh': ['start', session.get('zone', '')]}[action]
+            if action == 'refresh' and session.get('zone') not in ('C', 'D'):
+                raise ValueError
+        except (ValueError, TypeError, KeyError):
+            reply_json(handler, 400, {'error': 'invalid session action'})
+            return True
+        RUNTIME.mkdir(parents=True, exist_ok=True)
+        log = open(RUNTIME / 'logs' / 'session.log', 'ab') if (RUNTIME / 'logs').is_dir() else subprocess.DEVNULL
+        subprocess.Popen([sys.executable, '-I', str(HERE / 'launch.py'), *args],
+                         stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        reply_json(handler, 202, {'action': action, 'zone': session.get('zone')})
+    else:
+        reply_json(handler, 200, {'zone': session.get('zone'), 'paused': bool(session.get('paused')),
+                                  'outputs': sorted(session.get('outputs') or {})})
+    return True
+
+
 def reply_json(handler, code, value):
     data = json.dumps(value, ensure_ascii=False).encode()
     handler.send_response(code)
@@ -396,7 +434,7 @@ def make_proxy(upstream, inject_css=''):
 
         def forward(self):
             path = self.path.split('?')[0]
-            if handle_display(self) or handle_projection(self):
+            if handle_display(self) or handle_projection(self) or handle_session(self):
                 return
             if path.startswith('/exhibit/') and self.command in ('GET', 'HEAD'):
                 return KitHandler.send_file(self, resolve(WWW, path[len('/exhibit/'):]))

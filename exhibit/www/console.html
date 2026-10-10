@@ -37,6 +37,15 @@
 <body>
 <header><h1>C・D 展場控制台</h1><span>本機 127.0.0.1 · 走各區 X 播放協定（x-playback-v1）</span></header>
 <main>
+  <section id="session" style="grid-column:1/-1">
+    <h2><span class="dot"></span>展演狀態</h2>
+    <p class="sub">暫停：關掉全部展演畫面、看守程式停手，方便操作電腦。繼續：照上次的區域放回全部畫面。展演畫面左上角連點三下也能叫出暫停選單</p>
+    <dl><dt>目前</dt><dd data-f="state">—</dd></dl>
+    <div class="row"><button class="primary" data-session="resume">繼續展演</button>
+      <button data-session="pause">暫停展演</button><button data-session="refresh">重新排列全部畫面</button></div>
+    <div class="msg"></div>
+  </section>
+
   <section data-zone="c">
     <h2><span class="dot"></span>C 區 · 睡眠劇場（投影）</h2>
     <p class="sub">投影頁 Cweb-3d.html?x=1</p>
@@ -135,6 +144,28 @@ for (const card of document.querySelectorAll('section[data-zone]')) {
   });
   poll(); setInterval(poll, 1000);
 }
+
+// ---- 展演狀態：暫停／繼續／重新排列（由 kit 呼叫 launch.py） ----
+const sessionBox = document.getElementById('session'), sessionMsg = sessionBox.querySelector('.msg');
+async function pollSession() {
+  try {
+    const s = await (await fetch('/exhibit-api/session', { cache: 'no-store' })).json();
+    sessionBox.querySelector('.dot').className = 'dot ' + (!s.zone ? 'bad' : s.paused ? 'warn' : 'ok');
+    sessionBox.querySelector('[data-f="state"]').textContent = !s.zone ? '尚未開始（用 start C / start D）'
+      : `${s.zone} 區 · ${s.paused ? '已暫停' : '展演中'}${s.outputs.length ? ' · ' + s.outputs.join('、') : ''}`;
+  } catch { sessionBox.querySelector('.dot').className = 'dot bad'; }
+}
+sessionBox.querySelectorAll('[data-session]').forEach(b => b.onclick = async () => {
+  sessionMsg.className = 'msg'; sessionMsg.textContent = `${b.textContent}…`;
+  try {
+    const r = await fetch('/exhibit-api/session', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: b.dataset.session }) });
+    if (!r.ok) throw Error((await r.json()).error || r.status);
+    sessionMsg.className = 'msg ok'; sessionMsg.textContent = `已送出「${b.textContent}」，幾秒內完成`;
+  } catch (err) { sessionMsg.className = 'msg bad'; sessionMsg.textContent = `失敗：${err.message || err}`; }
+  setTimeout(pollSession, 3000);
+});
+pollSession(); setInterval(pollSession, 2000);
 
 // ---- 自動循環播放：設定與倒數都在 kit 服務端 ----
 for (const card of document.querySelectorAll('section[data-zone]')) {
