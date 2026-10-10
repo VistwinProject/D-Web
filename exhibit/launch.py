@@ -6,6 +6,7 @@
   python3 D-Web/exhibit/launch.py start C        開 C 區（窗景左右電視＋睡眠劇場投影）
   python3 D-Web/exhibit/launch.py start D        開 D 區（左右直立屏＋煙霧/IH 投影）
   python3 D-Web/exhibit/launch.py calibrate D    只把投影機切到校正模式（打開 mapping 校正面板）
+  python3 D-Web/exhibit/launch.py start D projector   只重開指定輸出（例如校正完切回投影畫面）
   python3 D-Web/exhibit/launch.py stop           關掉所有 kiosk 視窗與本工具開的服務
   python3 D-Web/exhibit/launch.py console        在目前的 Chrome 開控制台
 
@@ -170,7 +171,7 @@ def cmd_identify(include_main):
     print('\n看完告訴我每個編號的實體位置；關掉：python3 D-Web/exhibit/launch.py stop')
 
 
-def cmd_start(zone, calibrate=False):
+def cmd_start(zone, calibrate=False, only=()):
     cfg = json.loads(CONFIG.read_text())
     if zone not in cfg:
         sys.exit(f'outputs.json 沒有 {zone} 區')
@@ -179,6 +180,11 @@ def cmd_start(zone, calibrate=False):
         outputs = {k: {**v, 'url': v['calibrate_url']} for k, v in outputs.items() if 'calibrate_url' in v}
         if not outputs:
             sys.exit(f'{zone} 區沒有可校正的輸出（outputs.json 沒有 calibrate_url）')
+    if only:
+        unknown = set(only) - set(outputs)
+        if unknown:
+            sys.exit(f'{zone} 區沒有輸出：{", ".join(unknown)}（可用：{", ".join(outputs)}）')
+        outputs = {k: v for k, v in outputs.items() if k in only}
     all_screens = screens()
     plan = []
     for name, out in outputs.items():
@@ -199,7 +205,7 @@ def cmd_start(zone, calibrate=False):
     for name in ZONE_SERVICES[zone]:
         ensure_service(name, pids)
     print(f'{zone} 區輸出：')
-    for name in (outputs if calibrate else ['']):
+    for name in (outputs if calibrate or only else ['']):
         stop_kiosks(f'{zone}-{name}')
     stop_kiosks('identify-')
     time.sleep(0.5)
@@ -238,7 +244,7 @@ def main():
     elif sys.argv[1] in ('start', 'calibrate'):
         if len(sys.argv) < 3 or sys.argv[2].upper() not in ZONE_SERVICES:
             sys.exit(f'用法：launch.py {sys.argv[1]} C|D')
-        cmd_start(sys.argv[2].upper(), calibrate=sys.argv[1] == 'calibrate')
+        cmd_start(sys.argv[2].upper(), calibrate=sys.argv[1] == 'calibrate', only=tuple(sys.argv[3:]))
     elif sys.argv[1] == 'stop':
         cmd_stop()
     else:

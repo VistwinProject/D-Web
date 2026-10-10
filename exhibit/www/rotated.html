@@ -21,6 +21,7 @@
 // 由各區的同源代理提供（C 8780、D 8781），所以 src 只接受本站路徑。
 // 方向用 key 存在 display.json，控制台可即時切換。滑鼠操作（例如投影四角校正）
 // 會依旋轉自動換算座標；鍵盤快捷鍵（F 校正、B 黑場…）則把焦點交給 iframe。
+// &hide=CSS 選擇器：在內頁隱藏這些元素與游標，例如投影只留 mapping 好的畫面。
 const q = new URLSearchParams(location.search);
 const src = q.get('src') || '';
 const key = q.get('key') || '';
@@ -28,7 +29,15 @@ const frame = document.getElementById('out');
 if (src.startsWith('/') && !src.startsWith('//')) frame.src = src;
 document.title = `旋轉輸出 · ${key || src}`;
 if (key) exhibitRotation(key, document.getElementById('stage'));
-frame.addEventListener('load', () => frame.contentWindow.focus());
+frame.addEventListener('load', () => {
+  const hide = q.get('hide');
+  if (hide) {
+    const style = frame.contentDocument.createElement('style');
+    style.textContent = `${hide}{display:none!important} html,body,*{cursor:none!important}`;
+    frame.contentDocument.head.append(style);
+  }
+  frame.contentWindow.focus();
+});
 addEventListener('focus', () => frame.contentWindow?.focus());
 </script>
 </body>
