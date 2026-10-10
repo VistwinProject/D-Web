@@ -95,7 +95,9 @@ macOS 一定要有一台主螢幕，選單列、通知和新開的 App 視窗都
 3. 按「**儲存為現場設定**」，看到「已存入此電腦」才算存好。
 4. 按「**投影**」隱藏介面。
 
-校正結果存在**那台電腦**的 `~/.d-web-installation/mapping.json`，不在這個 repo 裡。換電腦後要重新校正，或在校正面板用「匯出設定／匯入設定」搬過去。詳見 `D-Web/MAPPING.md`。
+校正模式用 `launch.py calibrate D` 開啟，調完用 `launch.py start D projector` 切回純投影。校正時角點會浮在面板上方，按 **H** 可以收起／叫回面板。
+
+校正結果存在**那台電腦**的 `~/.d-web-installation/mapping.json`。repo 裡的 `exhibit/mapping.json` 是備份：新電腦第一次 `start D` 時，若還沒有現場校正就自動套用這份（已有校正不會覆蓋）。重新校正並儲存後，執行 `launch.py backup-mapping` 把最新校正複製進 repo，再 commit 推上去。詳見 `D-Web/MAPPING.md`。
 
 ## 埠與元件
 

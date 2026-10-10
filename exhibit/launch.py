@@ -7,6 +7,7 @@
   python3 D-Web/exhibit/launch.py start D        開 D 區（左右直立屏＋煙霧/IH 投影）
   python3 D-Web/exhibit/launch.py calibrate D    只把投影機切到校正模式（打開 mapping 校正面板）
   python3 D-Web/exhibit/launch.py start D projector   只重開指定輸出（例如校正完切回投影畫面）
+  python3 D-Web/exhibit/launch.py backup-mapping 把這台電腦的 D 投影現場校正複製進 repo（exhibit/mapping.json）
   python3 D-Web/exhibit/launch.py pause          暫停展演：關掉全部畫面、看守程式停手，方便操作電腦
   python3 D-Web/exhibit/launch.py resume         繼續展演：照上次的區域重新放好全部畫面
   python3 D-Web/exhibit/launch.py stop           關掉所有 kiosk 視窗與本工具開的服務
@@ -41,6 +42,9 @@ LOGS = RUNTIME / 'logs'
 PIDS = RUNTIME / 'pids.json'
 SESSION = RUNTIME / 'session.json'      # 目前哪一區、是否暫停、每個輸出開的網址
 WINLIST_SRC = HERE / 'winlist.swift'
+# D 投影現場校正：D 服務存在這台電腦的設定目錄；repo 裡的 mapping.json 是備份，新電腦第一次啟動時套用
+MAPPING_BACKUP = HERE / 'mapping.json'
+MAPPING_DIR = Path(os.environ.get('D_MAPPING_CONFIG_DIR', Path.home() / '.d-web-installation'))
 WINLIST_BIN = RUNTIME / 'winlist'
 CONFIG = HERE / 'outputs.json'
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
@@ -131,6 +135,25 @@ def windows():
     except (OSError, subprocess.SubprocessError):
         return None
     return [tuple(int(v) for v in line.split()) for line in out.splitlines() if len(line.split()) == 6]
+
+
+def seed_mapping():
+    """這台電腦還沒有 D 投影校正時，套用 repo 裡的備份；已經有的話不動。"""
+    if not MAPPING_BACKUP.exists() or any((MAPPING_DIR / n).exists() for n in ('mapping.json', 'mapping.previous.json')):
+        return
+    MAPPING_DIR.mkdir(parents=True, exist_ok=True)
+    target = MAPPING_DIR / 'mapping.json'
+    target.write_bytes(MAPPING_BACKUP.read_bytes())
+    target.chmod(0o600)
+    print(f'  ✓ 套用 repo 裡的 D 投影校正備份 → {target}')
+
+
+def cmd_backup_mapping():
+    source = MAPPING_DIR / 'mapping.json'
+    if not source.exists():
+        sys.exit(f'這台電腦還沒有 D 投影現場校正（{source}）：先在校正畫面按「儲存為現場設定」')
+    MAPPING_BACKUP.write_bytes(source.read_bytes())
+    print(f'已備份到 {MAPPING_BACKUP}，記得 commit 並推上去')
 
 
 def ensure_watch(pids):
@@ -265,6 +288,8 @@ def cmd_start(zone, calibrate=False, only=()):
                   '可能蓋住展演畫面（建議用 HDMI 假螢幕插頭當主螢幕）')
     pids = load_pids()
     print(f'{zone} 區服務：')
+    if zone == 'D':
+        seed_mapping()
     for name in ZONE_SERVICES[zone]:
         ensure_service(name, pids)
     print(f'{zone} 區輸出：')
@@ -395,7 +420,7 @@ def cmd_stop():
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] not in ('screens', 'identify', 'start', 'calibrate', 'stop', 'console',
-                                                'pause', 'resume', 'watch'):
+                                                'pause', 'resume', 'watch', 'backup-mapping'):
         print(__doc__)
         return
     if sys.argv[1] == 'screens':
@@ -414,6 +439,8 @@ def main():
         cmd_resume()
     elif sys.argv[1] == 'watch':
         cmd_watch()
+    elif sys.argv[1] == 'backup-mapping':
+        cmd_backup_mapping()
     else:
         pids = load_pids()
         ensure_service('kit', pids)

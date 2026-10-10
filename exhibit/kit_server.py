@@ -445,6 +445,13 @@ def make_proxy(upstream, inject_css=''):
             headers = {k: v for k, v in self.headers.items()
                        if k.lower() not in ('host', 'origin', 'accept-encoding', 'connection', 'referer',
                                             'if-modified-since', 'if-none-match')}
+            # 上游（D 的 mapping 存檔、劇場控制）要求 Origin 等於它自己的網址。只有確定是本代理
+            # 同源頁面送出的請求才改寫成上游網址；其他來源原樣轉送，交給上游拒絕。
+            origin = self.headers.get('Origin')
+            if origin == 'http://' + self.headers.get('Host', ''):
+                headers['Origin'] = f'http://127.0.0.1:{upstream}'
+            elif origin:
+                headers['Origin'] = origin
             req = urllib.request.Request(f'http://127.0.0.1:{upstream}{self.path}',
                                          data=body, method=self.command, headers=headers)
             try:

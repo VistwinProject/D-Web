@@ -56,6 +56,14 @@ if (key) {
       let m;
       try { m = JSON.parse(e.data); } catch { return; }
       if (m.t === 'projection' && m.key === key) { look.cut = m.cut; look.feather = m.feather; applyLook(); }
+      // 遠端按下 mapping 自己的「儲存為現場設定」（走原本的驗證與存檔流程），回報結果
+      if (m.t === 'mapping-save' && m.key === key) {
+        const doc = frame.contentDocument, button = doc?.getElementById('save-install');
+        const report = text => ws.send(JSON.stringify({ t: 'mapping-save-result', key, status: text }));
+        if (!button) return report('這個畫面沒有 mapping 校正面板');
+        button.click();
+        setTimeout(() => report(doc.getElementById('save-status')?.textContent || ''), 2500);
+      }
     };
     ws.onclose = () => setTimeout(listen, 3000);
   })();
