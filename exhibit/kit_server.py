@@ -10,6 +10,7 @@
         讓旋轉用的包裝頁與 D 頁面同源（語音、隱藏狀態標籤都需要同源）。
 - 自動循環播放存在 exhibit/autoplay.json（/exhibit-api/autoplay）：就緒且停在開頭就開始，
         播完等 gap 秒重播；中途手動暫停則不自動接續。
+- 投影黑位切除與邊緣羽化存在 exhibit/projection.json（/exhibit-api/projection）。
 - 螢幕方向存在 exhibit/display.json，各埠 /exhibit-api/display 讀寫；
         控制台切換時經 8787 通知包裝頁即時套用。
 """
@@ -75,7 +76,7 @@ class KitHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split('?')[0]
-        if handle_display(self) or handle_autoplay(self):
+        if handle_display(self) or handle_autoplay(self) or handle_projection(self):
             return
         if path == '/':
             self.send_response(302)
@@ -97,6 +98,8 @@ class KitHandler(BaseHTTPRequestHandler):
             return handle_display(self)
         if path == '/exhibit-api/autoplay':
             return handle_autoplay(self)
+        if path == '/exhibit-api/projection':
+            return handle_projection(self)
         if not path.startswith('/api/'):
             return self.reply(404, {'error': 'not found'})
         if self.headers.get('Origin') not in (None, 'http://' + self.headers.get('Host', '')):
@@ -215,6 +218,45 @@ def handle_display(handler):
         reply_json(handler, 200, save_display(key, rotate))
     else:
         reply_json(handler, 200, load_display())
+    return True
+
+
+# 投影畫面調整：黑位切除（cut，低於此亮度變純黑）與邊緣羽化（feather，每邊淡出比例）
+PROJECTION_FILE = HERE / 'projection.json'
+
+
+def load_projection():
+    try:
+        return json.loads(PROJECTION_FILE.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
+
+
+def handle_projection(handler):
+    if handler.path.split('?')[0] != '/exhibit-api/projection':
+        return False
+    if handler.command == 'POST':
+        try:
+            size = int(handler.headers.get('Content-Length', 0))
+            p = json.loads(handler.rfile.read(size)) if 0 < size <= 1024 else None
+            key = p['key']
+            look = {'cut': round(max(0.0, min(0.8, float(p['cut']))), 3),
+                    'feather': round(max(0.0, min(0.3, float(p['feather']))), 3)}
+            if not re.fullmatch(r'[A-Za-z]-[a-z]+', key):
+                raise ValueError
+        except (ValueError, TypeError, KeyError):
+            reply_json(handler, 400, {'error': 'invalid projection setting'})
+            return True
+        with display_lock:
+            data = load_projection()
+            data[key] = look
+            tmp = PROJECTION_FILE.with_suffix('.tmp')
+            tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')
+            tmp.replace(PROJECTION_FILE)
+        broadcast(json.dumps({'t': 'projection', 'key': key, **look}).encode())
+        reply_json(handler, 200, data)
+    else:
+        reply_json(handler, 200, load_projection())
     return True
 
 
@@ -354,7 +396,7 @@ def make_proxy(upstream, inject_css=''):
 
         def forward(self):
             path = self.path.split('?')[0]
-            if handle_display(self):
+            if handle_display(self) or handle_projection(self):
                 return
             if path.startswith('/exhibit/') and self.command in ('GET', 'HEAD'):
                 return KitHandler.send_file(self, resolve(WWW, path[len('/exhibit/'):]))

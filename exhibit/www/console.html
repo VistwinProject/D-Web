@@ -71,6 +71,18 @@
     <div class="msg"></div>
   </section>
 
+  <section id="look">
+    <h2><span class="dot ok"></span>D 投影 · 暗部與邊緣</h2>
+    <p class="sub">煙霧區暗部切成純黑、四邊淡出，讓牆上不出現發亮的長方形框。拖動即時套用並記住（IH 不受影響）</p>
+    <div class="row"><label style="width:88px;color:var(--dim);align-self:center">黑位切除</label>
+      <input data-look="cut" type="range" min="0" max="0.6" step="0.01" style="flex:1">
+      <span data-look-value="cut" style="width:56px;text-align:right;align-self:center"></span></div>
+    <div class="row"><label style="width:88px;color:var(--dim);align-self:center">邊緣羽化</label>
+      <input data-look="feather" type="range" min="0" max="0.25" step="0.01" style="flex:1">
+      <span data-look-value="feather" style="width:56px;text-align:right;align-self:center"></span></div>
+    <div class="msg"></div>
+  </section>
+
   <section id="orient">
     <h2><span class="dot ok"></span>螢幕方向（直立電視・轉向投影）</h2>
     <p class="sub">電視實體直立、系統仍輸出橫向時，由網頁把畫面轉 90°。按下立即套用並記住；字倒了就換另一個方向</p>
@@ -213,6 +225,31 @@ orient.onclick = async e => {
   } catch (err) { omsg.className = 'msg bad'; omsg.textContent = `設定失敗：${err.message || err}`; }
 };
 fetch('/exhibit-api/display', { cache: 'no-store' }).then(r => r.json()).then(showOrient).catch(() => {});
+
+// ---- D 投影暗部與邊緣：寫入 projection.json，投影外框經中繼即時套用 ----
+const lookBox = document.getElementById('look'), lookMsg = lookBox.querySelector('.msg');
+const lookKey = 'D-projector', lookVal = { cut: 0, feather: 0 };
+function showLook() {
+  for (const f of ['cut', 'feather']) {
+    lookBox.querySelector(`[data-look="${f}"]`).value = lookVal[f];
+    lookBox.querySelector(`[data-look-value="${f}"]`).textContent = Math.round(lookVal[f] * 100) + '%';
+  }
+}
+let lookTimer = null;
+lookBox.querySelectorAll('[data-look]').forEach(input => input.oninput = () => {
+  lookVal[input.dataset.look] = +input.value; showLook();
+  clearTimeout(lookTimer);
+  lookTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/exhibit-api/projection', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ key: lookKey, ...lookVal }) });
+      if (!r.ok) throw Error((await r.json()).error || r.status);
+      lookMsg.className = 'msg ok'; lookMsg.textContent = `已套用：黑位切除 ${Math.round(lookVal.cut * 100)}%、邊緣羽化 ${Math.round(lookVal.feather * 100)}%`;
+    } catch (err) { lookMsg.className = 'msg bad'; lookMsg.textContent = `設定失敗：${err.message || err}`; }
+  }, 120);
+});
+fetch('/exhibit-api/projection', { cache: 'no-store' }).then(r => r.json())
+  .then(d => { Object.assign(lookVal, d[lookKey] || {}); showLook(); }).catch(showLook);
 </script>
 </body>
 </html>

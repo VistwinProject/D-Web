@@ -22,6 +22,7 @@
 // 方向用 key 存在 display.json，控制台可即時切換。滑鼠操作（例如投影四角校正）
 // 會依旋轉自動換算座標；鍵盤快捷鍵（F 校正、B 黑場…）則把焦點交給 iframe。
 // &hide=CSS 選擇器：在內頁隱藏這些元素與游標，例如投影只留 mapping 好的畫面。
+// 投影調整（projection.json，同一個 key）：煙霧區的黑位切除與邊緣羽化，控制台可即時調。
 const q = new URLSearchParams(location.search);
 const src = q.get('src') || '';
 const key = q.get('key') || '';
@@ -29,7 +30,38 @@ const frame = document.getElementById('out');
 if (src.startsWith('/') && !src.startsWith('//')) frame.src = src;
 document.title = `旋轉輸出 · ${key || src}`;
 if (key) exhibitRotation(key, document.getElementById('stage'));
+// 黑位切除：先 brightness(b) 再 contrast(c)，等於 out = (v - t) / (1 - t)，
+// 低於門檻 t 的暗部變純黑、白色維持 1；兩步都不會超出 0–1，所以不會被截斷。
+// 只作用在 mapping 的影片畫布（.surface canvas）；IH 是 iframe，不受影響。
+const look = { cut: 0, feather: 0 };
+function applyLook() {
+  const doc = frame.contentDocument;
+  if (!doc?.head) return;
+  let style = doc.getElementById('exhibit-look');
+  if (!style) { style = doc.createElement('style'); style.id = 'exhibit-look'; doc.head.append(style); }
+  const t = Math.min(.8, Math.max(0, +look.cut || 0)), f = Math.min(.3, Math.max(0, +look.feather || 0));
+  const slope = 1 / (1 - t), c = 1 + 2 * t * slope, b = slope / c, edge = (f * 100).toFixed(1);
+  const fade = dir => `linear-gradient(${dir}, transparent, #000 ${edge}%, #000 ${100 - edge}%, transparent)`;
+  const mask = f > 0 ? `${fade('to right')}, ${fade('to bottom')}` : 'none';
+  style.textContent = `.surface canvas{filter:${t > 0 ? `brightness(${b.toFixed(4)}) contrast(${c.toFixed(4)})` : 'none'};` +
+    `-webkit-mask-image:${mask};mask-image:${mask};-webkit-mask-composite:source-in;mask-composite:intersect}`;
+}
+if (key) {
+  fetch('/exhibit-api/projection', { cache: 'no-store' }).then(r => r.json())
+    .then(d => { Object.assign(look, d[key] || {}); applyLook(); }).catch(() => {});
+  (function listen() {
+    const ws = new WebSocket(`ws://${location.hostname}:8787`);
+    ws.onmessage = e => {
+      let m;
+      try { m = JSON.parse(e.data); } catch { return; }
+      if (m.t === 'projection' && m.key === key) { look.cut = m.cut; look.feather = m.feather; applyLook(); }
+    };
+    ws.onclose = () => setTimeout(listen, 3000);
+  })();
+}
+
 frame.addEventListener('load', () => {
+  applyLook();
   const hide = q.get('hide');
   if (hide) {
     const style = frame.contentDocument.createElement('style');
