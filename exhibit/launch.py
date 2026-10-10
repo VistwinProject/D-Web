@@ -277,7 +277,9 @@ def cmd_start(zone, calibrate=False, only=()):
     session = load_session()
     if session.get('zone') != zone or not (calibrate or only):
         session['outputs'] = {}
-    session.update(zone=zone, paused=False)
+    session['zone'] = zone
+    if not (calibrate or only):  # 只重開某幾個輸出時不動暫停狀態：暫停中單開投影機，不會把其他畫面也拉回來
+        session['paused'] = False
     for name, url, _ in plan:
         session['outputs'][name] = {'url': url, 'screen': outputs[name]['screen']}
     save_session(session)
